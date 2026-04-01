@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 thiserror = { workspace = true }
+regex = "1.11.2"
+once_cell = "1.18.0"

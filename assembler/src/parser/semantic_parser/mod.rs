@@ -1,16 +1,16 @@
-use isa::{OperandSpec, OperandType, OptSpec};
-use regex::Regex;
+use isa::{CONSTANT, OperandSpec, OperandType, OptSpec};
 use std::collections::HashMap;
 
 use super::{
-    super::render_error::{Diagnostic, render_error},
-    instruction::{Instruction, InstructionField, Statement, StatementField},
+    super::{
+        lexer::token::SourceLoc,
+        render_error::{Diagnostic, render_error},
+    },
+    instruction::{Instruction, InstructionField, SemanticNode, Statement, StatementField},
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum SemanticError {
-    #[error("Regex Compilation error: {0}")]
-    RegexCompilation(#[from] regex::Error),
     #[error("{message}")]
     ShapeDoesNotMatch { message: String },
     #[error("{message}")]
@@ -28,16 +28,17 @@ pub enum SemanticError {
 }
 
 struct TiiEntry {
-    instruction_number: usize,
+    at: SourceLoc,
+    statement_number: usize,
     operand_number: usize,
 }
 
 pub struct SemanticParser {
     optspec: OptSpec,
     symtab: HashMap<String, u32>,
-    tii: HashMap<StatementField, Vec<TiiEntry>>,
+    tii: HashMap<String, Vec<TiiEntry>>,
     location_counter: u32,
-    instruction_counter: usize,
+    statement_counter: usize,
 }
 
 impl SemanticParser {
@@ -47,7 +48,7 @@ impl SemanticParser {
             symtab: HashMap::new(),
             tii: HashMap::new(),
             location_counter: 0,
-            instruction_counter: 0,
+            statement_counter: 0,
         }
     }
 
@@ -57,10 +58,10 @@ impl SemanticParser {
             .map(|statement| {
                 let mut new_statement = statement.clone();
                 new_statement.label = statement.label.clone();
-                new_statement.operation_name = statement.operation_name.clone();
+                new_statement.identifier = statement.identifier.clone();
                 new_statement.operands = if let Some(operands) = new_statement.operands {
-                    match &statement.operation_name {
-                        Some(operation_name) => match operation_name.value.as_str() {
+                    match &statement.identifier {
+                        Some(identifier) => match identifier.value.as_str() {
                             "ADD" | "ADDI" | "ADC" | "ADCI" | "SUB" | "SUBI" | "SBC" | "SBCI"
                             | "MULT" | "MULTI" | "AND" | "OR" | "XOR" => {
                                 if operands.len() == 2 {
@@ -96,13 +97,12 @@ impl SemanticParser {
         &mut self,
         token: StatementField,
         spec: &OperandSpec,
-        re: &Regex,
         operand_number: usize,
         source_lines: &Vec<String>,
     ) -> Result<InstructionField, SemanticError> {
-        match spec.operand_type {
+        match spec.operand_def.operand_type {
             OperandType::Register => {
-                if !re.is_match(&token.value) {
+                if !spec.operand_def.operand_regex.is_match(&token.value) {
                     return Err(SemanticError::ShapeDoesNotMatch {
                         message: render_error(Diagnostic {
                             headline: format!(
@@ -115,7 +115,7 @@ impl SemanticParser {
                             help: Some(
                                 format!(
                                     "Register operand must match the regex: {}",
-                                    spec.operand_regex
+                                    spec.operand_def.operand_regex.as_str()
                                 )
                                 .as_str(),
                             ),
@@ -129,7 +129,7 @@ impl SemanticParser {
                 Ok(InstructionField { value, bit_count })
             }
             OperandType::Constant => {
-                if !re.is_match(&token.value) {
+                if !spec.operand_def.operand_regex.is_match(&token.value) {
                     return Err(SemanticError::ShapeDoesNotMatch {
                         message: render_error(Diagnostic {
                             headline: format!(
@@ -142,7 +142,7 @@ impl SemanticParser {
                             help: Some(
                                 format!(
                                     "Constant operand must match the regex: {}",
-                                    spec.operand_regex
+                                    spec.operand_def.operand_regex.as_str()
                                 )
                                 .as_str(),
                             ),
@@ -157,8 +157,8 @@ impl SemanticParser {
                 let bit_count = spec.bit_count;
                 Ok(InstructionField { value, bit_count })
             }
-            OperandType::Memory => {
-                if !re.is_match(&token.value) {
+            OperandType::MemoryAddress => {
+                if !spec.operand_def.operand_regex.is_match(&token.value) {
                     return Err(SemanticError::ShapeDoesNotMatch {
                         message: render_error(Diagnostic {
                             headline: format!(
@@ -171,7 +171,7 @@ impl SemanticParser {
                             help: Some(
                                 format!(
                                     "Memory operand must match the regex: {}",
-                                    spec.operand_regex
+                                    spec.operand_def.operand_regex.as_str()
                                 )
                                 .as_str(),
                             ),
@@ -186,7 +186,7 @@ impl SemanticParser {
                 Ok(InstructionField { value, bit_count })
             }
             OperandType::Label => {
-                if !re.is_match(&token.value) {
+                if !spec.operand_def.operand_regex.is_match(&token.value) {
                     return Err(SemanticError::ShapeDoesNotMatch {
                         message: render_error(Diagnostic {
                             headline: format!("Token '{}' does not look like a label", token.value),
@@ -194,7 +194,7 @@ impl SemanticParser {
                             column: token.loc.column,
                             source_line: &source_lines[token.loc.line as usize - 1].clone(),
                             help: Some(
-                                format!("Label must match the regex: {}", spec.operand_regex)
+                                format!("Label must match the regex: {}", spec.operand_def.operand_regex.as_str())
                                     .as_str(),
                             ),
                         }),
@@ -206,8 +206,9 @@ impl SemanticParser {
                         bit_count: spec.bit_count,
                     })
                 } else {
-                    self.tii.entry(token).or_default().push(TiiEntry {
-                        instruction_number: self.instruction_counter,
+                    self.tii.entry(token.value).or_default().push(TiiEntry {
+                        at: token.loc,
+                        statement_number: self.statement_counter,
                         operand_number,
                     });
                     Ok(InstructionField {
@@ -223,126 +224,181 @@ impl SemanticParser {
         &mut self,
         statement: Statement,
         source_lines: &Vec<String>,
-    ) -> Result<Instruction, SemanticError> {
-        let operation_name = statement.operation_name.unwrap();
-        let operation = match self
-            .optspec
-            .get_by_operation_name(&operation_name.value.as_str())
-        {
-            Some(operation) => operation,
-            None => {
-                return Err(SemanticError::UnknownOperation {
-                    message: render_error(Diagnostic {
-                        headline: format!("Unknown opcode '{}'", operation_name.value),
-                        line: operation_name.loc.line,
-                        column: operation_name.loc.column,
-                        source_line: &source_lines[operation_name.loc.line as usize - 1].clone(),
-                        help: None,
+    ) -> Result<SemanticNode, SemanticError> {
+        let identifier = statement.identifier.unwrap();
+        let node = match identifier.value.as_str() {
+            "DB" => {
+                let data = match statement.operands {
+                    Some(operands) => {
+                        if operands.len() != 1 {
+                            return Err(SemanticError::ShapeDoesNotMatch {
+                                message: render_error(Diagnostic {
+                                    headline: "DB statement must have one operand".to_string(),
+                                    line: identifier.loc.line,
+                                    column: identifier.loc.column,
+                                    source_line: &source_lines[identifier.loc.line as usize - 1].clone(),
+                                    help: None,
+                                }),
+                            });
+                        }
+                        &operands[0].clone()
+                    },
+                    None => return Err(SemanticError::ShapeDoesNotMatch {
+                        message: render_error(Diagnostic {
+                            headline: "DB statement must have one operand".to_string(),
+                            line: identifier.loc.line,
+                            column: identifier.loc.column,
+                            source_line: &source_lines[identifier.loc.line as usize - 1].clone(),
+                            help: None,
+                        }),
                     }),
-                });
-            }
-        };
-        let opcode = operation.opcode;
+                };
 
-        let expected_operands = operation.operands.clone();
-
-        let operands = if let Some(operands) = statement.operands {
-            if operands.len() < expected_operands.len() {
-                return Err(SemanticError::ShapeDoesNotMatch {
-                    message: render_error(Diagnostic {
-                        headline: "Too few operands".to_string(),
-                        line: operation_name.loc.line,
-                        source_line: &source_lines[operation_name.loc.line as usize - 1].clone(),
-                        column: operation_name.loc.column,
-                        help: Some(
-                            format!(
-                                "Operation {} requires {} operands",
-                                operation_name.value,
-                                expected_operands.len()
-                            )
-                            .as_str(),
-                        ),
-                    }),
-                });
-            } else if operands.len() > expected_operands.len() {
-                return Err(SemanticError::ShapeDoesNotMatch {
-                    message: render_error(Diagnostic {
-                        headline: "Too many operands".to_string(),
-                        line: operation_name.loc.line,
-                        source_line: &source_lines[operation_name.loc.line as usize - 1].clone(),
-                        column: operation_name.loc.column,
-                        help: Some(
-                            format!(
-                                "Operation {} requires {} operands",
-                                operation_name.value,
-                                expected_operands.len()
-                            )
-                            .as_str(),
-                        ),
-                    }),
-                });
-            } else {
-                operands
-            }
-        } else {
-            if expected_operands.len() != 0 {
-                return Err(SemanticError::ShapeDoesNotMatch {
-                    message: render_error(Diagnostic {
-                        headline: "Missing operands".to_string(),
-                        line: operation_name.loc.line,
-                        source_line: &source_lines[operation_name.loc.line as usize - 1].clone(),
-                        column: operation_name.loc.column,
-                        help: Some(
-                            format!(
-                                "Operation {} requires {} operands",
-                                operation_name.value,
-                                expected_operands.len()
-                            )
-                            .as_str(),
-                        ),
-                    }),
-                });
-            } else {
-                vec![]
-            }
-        };
-
-        let operands: Result<Vec<InstructionField>, SemanticError> = expected_operands
-            .iter()
-            .zip(operands.iter())
-            .enumerate()
-            .map(|(i, (spec, token))| {
-                let re = Regex::new(spec.operand_regex.as_str())?;
-                self.parse_operand(token.clone(), spec, &re, i, source_lines)
-            })
-            .collect();
-
-        let operands = operands?;
-
-        let size = (self.optspec.opcode_bit_count
-            + operands
-                .iter()
-                .fold(0, |acc, operand| acc + operand.bit_count)) as u32;
-
-        self.instruction_counter += 1;
-
-        Ok(Instruction {
-            opcode: InstructionField {
-                value: opcode,
-                bit_count: self.optspec.opcode_bit_count,
+                if !CONSTANT.operand_regex.is_match(&data.value) {
+                    return Err(SemanticError::ShapeDoesNotMatch {
+                        message: render_error(Diagnostic {
+                            headline: format!(
+                                "Token '{}' does not look like a constant",
+                                data.value
+                            ),
+                            line: data.loc.line,
+                            column: data.loc.column,
+                            source_line: &source_lines[data.loc.line as usize - 1],
+                            help: Some(
+                                format!(
+                                    "Constant operand must match the regex: {}",
+                                    CONSTANT.operand_regex.as_str()
+                                )
+                                .as_str(),
+                            ),
+                        }),
+                    });
+                }
+                
+                SemanticNode::Data(data.value.parse().map_err(|_| SemanticError::ParseInt(data.value.clone()))?)
             },
-            operands: Some(operands),
-            size,
-        })
+            _ => {
+                let (operation, opcode) = match self
+                    .optspec
+                    .get_by_operation_name(&identifier.value.as_str())
+                {
+                    Some(operation) => operation,
+                    None => {
+                        return Err(SemanticError::UnknownOperation {
+                            message: render_error(Diagnostic {
+                                headline: format!("Unknown opcode '{}'", identifier.value),
+                                line: identifier.loc.line,
+                                column: identifier.loc.column,
+                                source_line: &source_lines[identifier.loc.line as usize - 1].clone(),
+                                help: None,
+                            }),
+                        });
+                    }
+                };
+        
+                let expected_operands = operation.operands.clone();
+        
+                let operands = if let Some(operands) = statement.operands {
+                    if operands.len() < expected_operands.len() {
+                        return Err(SemanticError::ShapeDoesNotMatch {
+                            message: render_error(Diagnostic {
+                                headline: "Too few operands".to_string(),
+                                line: identifier.loc.line,
+                                source_line: &source_lines[identifier.loc.line as usize - 1].clone(),
+                                column: identifier.loc.column,
+                                help: Some(
+                                    format!(
+                                        "Operation {} requires {} operands",
+                                        identifier.value,
+                                        expected_operands.len()
+                                    )
+                                    .as_str(),
+                                ),
+                            }),
+                        });
+                    } else if operands.len() > expected_operands.len() {
+                        return Err(SemanticError::ShapeDoesNotMatch {
+                            message: render_error(Diagnostic {
+                                headline: "Too many operands".to_string(),
+                                line: identifier.loc.line,
+                                source_line: &source_lines[identifier.loc.line as usize - 1].clone(),
+                                column: identifier.loc.column,
+                                help: Some(
+                                    format!(
+                                        "Operation {} requires {} operands",
+                                        identifier.value,
+                                        expected_operands.len()
+                                    )
+                                    .as_str(),
+                                ),
+                            }),
+                        });
+                    } else {
+                        operands
+                    }
+                } else {
+                    if expected_operands.len() != 0 {
+                        return Err(SemanticError::ShapeDoesNotMatch {
+                            message: render_error(Diagnostic {
+                                headline: "Missing operands".to_string(),
+                                line: identifier.loc.line,
+                                source_line: &source_lines[identifier.loc.line as usize - 1].clone(),
+                                column: identifier.loc.column,
+                                help: Some(
+                                    format!(
+                                        "Operation {} requires {} operands",
+                                        identifier.value,
+                                        expected_operands.len()
+                                    )
+                                    .as_str(),
+                                ),
+                            }),
+                        });
+                    } else {
+                        vec![]
+                    }
+                };
+        
+                let operands: Result<Vec<InstructionField>, SemanticError> = expected_operands
+                    .iter()
+                    .zip(operands.iter())
+                    .enumerate()
+                    .map(|(i, (spec, token))| {
+                        self.parse_operand(token.clone(), spec, i, source_lines)
+                    })
+                    .collect();
+        
+                let operands = operands?;
+        
+                let size = (self.optspec.opcode_bit_count
+                    + operands
+                        .iter()
+                        .fold(0, |acc, operand| acc + operand.bit_count)) as u32;
+        
+                self.statement_counter += 1;
+
+                SemanticNode::Instruction(Instruction {
+                    opcode: InstructionField {
+                        value: opcode as u32,
+                        bit_count: self.optspec.opcode_bit_count,
+                    },
+                    operands: Some(operands),
+                    size,
+                })
+            }
+        };
+
+        Ok(node)
+
     }
 
     pub fn parse(
         &mut self,
         statements: Vec<Statement>,
         source_lines: &Vec<String>,
-    ) -> Result<Vec<Instruction>, SemanticError> {
+    ) -> Result<Vec<SemanticNode>, SemanticError> {
         let statements = self.normalize(statements)?;
-        let mut instructions = Vec::<Instruction>::new();
+        let mut semantic_nodes = Vec::<SemanticNode>::new();
         for statement in statements {
             if let Some(label) = &statement.label {
                 match self.symtab.contains_key(label.value.as_str()) {
@@ -354,50 +410,58 @@ impl SemanticParser {
                             .insert(label.value.clone(), self.location_counter);
 
                         // patch
-                        if let Some(tii_entries) = self.tii.get(label) {
+                        if let Some(tii_entries) = self.tii.get(label.value.as_str()) {
                             for entry in tii_entries {
-                                instructions[entry.instruction_number]
-                                    .operands
-                                    .as_mut()
-                                    .unwrap()[entry.operand_number]
-                                    .value = self.location_counter;
+                                // irrespective of statement type we need to patch
+                                if let SemanticNode::Instruction(instr) =
+                                    &mut semantic_nodes[entry.statement_number]
+                                {
+                                    instr.operands.as_mut().unwrap()[entry.operand_number].value =
+                                        self.location_counter;
+                                }
                             }
 
                             // remove the entry from the tii
-                            self.tii.remove(label);
+                            self.tii.remove(label.value.as_str());
                         };
                     }
                 };
             }
-            if statement.operation_name.is_some() {
-                let instruction = self.analyze_statement(statement, source_lines)?;
-                self.location_counter += instruction.size;
-                instructions.push(instruction);
+            if statement.identifier.is_some() {
+                let semantic_node = self.analyze_statement(statement, source_lines)?;
+                self.location_counter += match &semantic_node {
+                    SemanticNode::Instruction(instruction) => instruction.size,
+                    SemanticNode::Data(_) => 8,
+                };
+                semantic_nodes.push(semantic_node);
             }
         }
         if !self.tii.is_empty() {
-            let entries = self.tii.keys();
             let mut message = String::new();
-            for entry in entries {
-                message.push_str(
-                    render_error(Diagnostic {
-                        headline: format!("Undefined label '{}'", entry.value),
-                        line: entry.loc.line,
-                        source_line: &source_lines[entry.loc.line as usize - 1].clone(),
-                        column: entry.loc.column,
-                        help: None,
-                    })
-                    .as_str(),
-                );
+            for (key, values) in &self.tii {
+                for value in values {
+                    message.push_str(
+                        render_error(Diagnostic {
+                            headline: format!("Undefined label '{}'", key),
+                            line: value.at.line,
+                            source_line: &source_lines[value.at.line as usize - 1].clone(),
+                            column: value.at.column,
+                            help: None,
+                        })
+                        .as_str(),
+                    );
+                }
             }
             return Err(SemanticError::UndefinedLabel { message: message });
         }
-        Ok(instructions)
+        Ok(semantic_nodes)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::parser::semantic_parser::SemanticNode;
+
     use super::super::{
         super::lexer::token::SourceLoc,
         instruction::{InstructionField, Statement, StatementField},
@@ -412,12 +476,12 @@ mod tests {
                     value: "MOVE".to_string(),
                     loc: SourceLoc { line: 1, column: 1 },
                 }),
-                operation_name: None,
+                identifier: None,
                 operands: None,
             },
             Statement {
                 label: None,
-                operation_name: Some(StatementField {
+                identifier: Some(StatementField {
                     value: "MOVER".to_string(),
                     loc: SourceLoc { line: 2, column: 1 },
                 }),
@@ -439,32 +503,37 @@ mod tests {
 
         let mut semantic_parser = SemanticParser::new();
         let source_lines = ["", ""].map(|s| s.to_string()).to_vec();
-        let instructions = semantic_parser.parse(statements, &source_lines).unwrap();
+        let semantic_nodes = semantic_parser.parse(statements, &source_lines).unwrap();
 
-        assert_eq!(instructions.len(), 1);
-        let instruction = &instructions[0];
-        assert_eq!(
-            instruction.opcode,
-            InstructionField {
-                value: 1,
-                bit_count: 6
+        assert_eq!(semantic_nodes.len(), 1);
+        let semantic_node = &semantic_nodes[0];
+        match semantic_node {
+            SemanticNode::Instruction(instr) => {
+                assert_eq!(
+                    instr.opcode,
+                    InstructionField {
+                        value: 1,
+                        bit_count: 6
+                    }
+                );
+                let operands = instr.operands.as_ref().unwrap();
+                assert_eq!(operands.len(), 2);
+                assert_eq!(
+                    operands[0],
+                    InstructionField {
+                        value: 0,
+                        bit_count: 2
+                    }
+                );
+                assert_eq!(
+                    operands[1],
+                    InstructionField {
+                        value: 0,
+                        bit_count: 4
+                    }
+                );
             }
-        );
-        let operands = instruction.operands.as_ref().unwrap();
-        assert_eq!(operands.len(), 2);
-        assert_eq!(
-            operands[0],
-            InstructionField {
-                value: 0,
-                bit_count: 2
-            }
-        );
-        assert_eq!(
-            operands[1],
-            InstructionField {
-                value: 0,
-                bit_count: 4
-            }
-        );
+            SemanticNode::Data(_) => panic!("Expected Instruction but got Data"),
+        }
     }
 }

@@ -1,9 +1,12 @@
 use std::fmt::Display;
 
+use once_cell::sync::Lazy;
+use regex::Regex;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum OperandType {
     Register,
-    Memory,
+    MemoryAddress,
     Label,
     Constant,
 }
@@ -12,41 +15,39 @@ impl Display for OperandType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             OperandType::Register => write!(f, "Register"),
-            OperandType::Memory => write!(f, "Memory"),
+            OperandType::MemoryAddress => write!(f, "MemoryAddress"),
             OperandType::Label => write!(f, "Label"),
             OperandType::Constant => write!(f, "Constant"),
         }
     }
 }
 
+pub struct OperandDef {
+    pub operand_regex: Lazy<Regex>,
+    pub operand_type: OperandType,
+    
+}
+
 #[derive(Clone)]
 pub struct OperandSpec {
-    pub operand_type: OperandType,
-    pub operand_regex: String,
+    pub operand_def: &'static OperandDef,
     pub bit_count: u8,
 }
 
-impl OperandSpec {
-    fn new(operand_regex: &str, bit_count: u8, operand_type: OperandType) -> Self {
-        Self {
-            operand_type,
-            operand_regex: operand_regex.to_string(),
-            bit_count: bit_count,
-        }
-    }
-}
+pub static REGISTER: OperandDef = OperandDef { operand_regex: Lazy::new(|| Regex::new("^R[0-3]$").unwrap()), operand_type: OperandType::Register };
+pub static MEMORY_ADDRESS: OperandDef = OperandDef { operand_regex: Lazy::new(|| Regex::new("^[0-9]+$").unwrap()), operand_type: OperandType::MemoryAddress };
+pub static LABEL: OperandDef = OperandDef { operand_regex: Lazy::new(|| Regex::new("^[A-Z]+$").unwrap()), operand_type: OperandType::Label };
+pub static CONSTANT: OperandDef = OperandDef { operand_regex: Lazy::new(|| Regex::new("^-?[0-9]+$").unwrap()), operand_type: OperandType::Constant };
 
 pub struct Operation {
     pub operation_name: String,
-    pub opcode: u32,
-    pub operands: Vec<OperandSpec>,
+    pub operands: Vec<&'static OperandSpec>,
 }
 
 impl Operation {
-    fn new(operation_name: &str, opcode: u32, operands: Vec<OperandSpec>) -> Self {
+    fn new(operation_name: &str, operands: Vec<&'static OperandSpec>) -> Self {
         Self {
             operation_name: operation_name.to_string(),
-            opcode,
             operands,
         }
     }
@@ -59,76 +60,78 @@ pub struct OptSpec {
 
 impl OptSpec {
     pub fn clone() -> Self {
-        let reg = OperandSpec::new("^R[0-3]$", 2, OperandType::Register);
-        let mem = OperandSpec::new("^[0-9]+$", 4, OperandType::Memory);
-        let label = OperandSpec::new("^[A-Z]+$", 8, OperandType::Label);
-        let constant = OperandSpec::new("^-?[0-9]+$", 8, OperandType::Constant);
-
-        let no_operands = vec![];
-        let reg_mem = vec![reg.clone(), mem.clone()];
-        let reg_reg_reg = vec![reg.clone(), reg.clone(), reg.clone()];
-        let reg_reg_const = vec![reg.clone(), reg.clone(), constant.clone()];
-        let reg_only = vec![reg.clone()];
-        let reg_reg = vec![reg.clone(), reg.clone()];
-        let label = vec![label.clone()];
-        let reg_const = vec![reg.clone(), constant.clone()];
-        let constant_only = vec![constant.clone()];
+        static REG: OperandSpec = OperandSpec { operand_def: &REGISTER, bit_count: 2 };
+        static MEM: OperandSpec = OperandSpec { operand_def: &MEMORY_ADDRESS, bit_count: 4 };
+        static LABEL_: OperandSpec = OperandSpec { operand_def: &LABEL, bit_count: 8 };
+        static CONST: OperandSpec = OperandSpec { operand_def: &CONSTANT, bit_count: 8 };
 
         Self {
             opcode_bit_count: 6,
             opttab: vec![
-                Operation::new("HALT", 0, no_operands.clone()),
-                Operation::new("MOVER", 1, reg_mem.clone()),
-                Operation::new("MOVEI", 2, reg_const.clone()),
-                Operation::new("MOVEM", 3, reg_mem.clone()),
-                Operation::new("IN", 5, reg_only.clone()),
-                Operation::new("OUT", 6, reg_only.clone()),
-                Operation::new("OUT_16", 7, no_operands.clone()),
-                Operation::new("OUT_CHAR", 4, reg_only.clone()),
-                Operation::new("ADD", 8, reg_reg_reg.clone()),
-                Operation::new("ADDI", 9, reg_reg_const.clone()),
-                Operation::new("ADC", 10, reg_reg_reg.clone()),
-                Operation::new("ADCI", 11, reg_reg_const.clone()),
-                Operation::new("SUB", 13, reg_reg_reg.clone()),
-                Operation::new("SUBI", 14, reg_reg_const.clone()),
-                Operation::new("SBC", 15, reg_reg_reg.clone()),
-                Operation::new("SBCI", 16, reg_reg_const.clone()),
-                Operation::new("MULT", 18, reg_reg_reg.clone()),
-                Operation::new("MULTI", 19, reg_reg_const.clone()),
-                Operation::new("MULT_16", 20, reg_only.clone()),
-                Operation::new("JMP", 21, label.clone()),
-                Operation::new("JZ", 22, label.clone()),
-                Operation::new("JNZ", 23, label.clone()),
-                Operation::new("AND", 24, reg_reg_reg.clone()),
-                Operation::new("OR", 25, reg_reg_reg.clone()),
-                Operation::new("XOR", 26, reg_reg_reg.clone()),
-                Operation::new("NOT", 27, reg_only.clone()),
-                Operation::new("SHL", 28, reg_only.clone()),
-                Operation::new("PUSH", 32, reg_only.clone()),
-                Operation::new("POP", 33, reg_only.clone()),
-                Operation::new("CALL", 34, label.clone()),
-                Operation::new("RET", 35, no_operands.clone()),
-                Operation::new("SHR", 29, reg_only.clone()),
-                Operation::new("CMP", 30, reg_reg.clone()),
-                Operation::new("CMPI", 31, reg_const.clone()),
-                Operation::new("JG", 38, label.clone()),
-                Operation::new("JGE", 36, label.clone()),
-                Operation::new("JL", 37, label.clone()),
-                Operation::new("JLE", 39, label.clone()),
-                Operation::new("JNE", 40, label.clone()),
-                Operation::new("JE", 41, label.clone()),
-                Operation::new("DB", 42, constant_only.clone()),
+                Operation::new("HALT", vec![]),
+                Operation::new("IN", vec![&REG]),
+                Operation::new("OUT", vec![&REG]),
+                Operation::new("OUT_16", vec![]),
+                Operation::new("OUT_CHAR", vec![&REG]),
+                
+                Operation::new("MOVER", vec![&REG, &MEM]),
+                Operation::new("MOVEM", vec![&REG, &MEM]),
+                Operation::new("MOVEI", vec![&REG, &CONST]),
+                
+                Operation::new("ADD", vec![&REG, &REG, &REG]),
+                Operation::new("SUB", vec![&REG, &REG, &REG]),
+                Operation::new("MULT", vec![&REG, &REG, &REG]),
+                
+                Operation::new("ADDI", vec![&REG, &REG, &CONST]),
+                Operation::new("SUBI", vec![&REG, &REG, &CONST]),
+                Operation::new("MULTI", vec![&REG, &REG, &CONST]),
+                
+                Operation::new("ADC", vec![&REG, &REG, &REG]),
+                Operation::new("SBC", vec![&REG, &REG, &REG]),
+                
+                Operation::new("ADCI", vec![&REG, &REG, &CONST]),
+                Operation::new("SBCI", vec![&REG, &REG, &CONST]),
+                
+                Operation::new("MULT_16", vec![&REG]),
+                Operation::new("MULTI_16", vec![&CONST]),
+                
+                Operation::new("JMP", vec![&LABEL_]),
+                Operation::new("JZ", vec![&LABEL_]),
+                Operation::new("JNZ", vec![&LABEL_]),
+                Operation::new("PUSH", vec![&REG]),
+                Operation::new("POP", vec![&REG]),
+                Operation::new("CALL", vec![&LABEL_]),
+                Operation::new("RET", vec![]),
+
+                // Operation::new("AND", vec![&REG, &REG, &REG]),
+                // Operation::new("OR", vec![&REG, &REG, &REG]),
+                // Operation::new("XOR", vec![&REG, &REG, &REG]),
+                // Operation::new("NOT", vec![&REG]),
+                // Operation::new("SHL", vec![&REG]),
+                // Operation::new("SHR", vec![&REG]),
+                // Operation::new("CMP", vec![&REG, &REG]),
+                // Operation::new("CMPI", vec![&REG, &CONST]),
+                // Operation::new("JG", vec![&LABEL_]),
+                // Operation::new("JGE", vec![&LABEL_]),
+                // Operation::new("JL", vec![&LABEL_]),
+                // Operation::new("JLE", vec![&LABEL_]),
+                // Operation::new("JNE", vec![&LABEL_]),
+                // Operation::new("JE", vec![&LABEL_]),
             ],
         }
     }
 
     pub fn get_by_opcode(&self, opcode: &u32) -> Option<&Operation> {
-        self.opttab.iter().find(|op| op.opcode == *opcode)
+        // opcode represent index in the array
+        self.opttab.get(*opcode as usize)
     }
 
-    pub fn get_by_operation_name(&self, operation_name: &str) -> Option<&Operation> {
+    pub fn get_by_operation_name(&self, operation_name: &str) -> Option<(&Operation, usize)> {
+        // also include opcode in the returning struct
         self.opttab
             .iter()
-            .find(|op| op.operation_name == operation_name)
+            .enumerate()
+            .find(|(_, operation)| operation.operation_name == operation_name)
+            .map(|(opcode, operation)| (operation, opcode))
     }
 }

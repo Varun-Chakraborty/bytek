@@ -14,10 +14,11 @@ fn main() {
             process::exit(1);
         }
     };
-    let input_filename = match args.input_filename.clone() {
-        Some(filename) => {
+    let input_filepath = match args.input_filepath {
+        Some(filepath) => {
+            let filename = filepath.split('/').last().unwrap();
             if filename.split('.').last().unwrap() == "asm" {
-                filename
+                filepath
             } else {
                 println!("Assembler only accepts .asm files");
                 process::exit(1);
@@ -42,8 +43,15 @@ fn main() {
         }
     }
 
-    let file = File::open(&input_filename).expect("Failed to open file");
-    println!("Assembly file: {}", input_filename);
+    let file = match File::open(&input_filepath) {
+        Ok(file) => file,
+        Err(err) => {
+            println!("Failed to open file:\n\t{}", err);
+            process::exit(1);
+        }
+    };
+
+    println!("Assembly file: {}", input_filepath);
     let mut assembly_program = String::new();
     let mut reader = BufReader::new(file);
     reader
@@ -51,8 +59,16 @@ fn main() {
         .expect("Failed to read file");
 
     match assembler.assemble(assembly_program.as_str()) {
-        Ok((binary, mut delimiter_table)) => match Writer::new(args.debug, args.pretty) {
-            Ok(mut writer) => writer.write(binary, &mut delimiter_table).unwrap(),
+        Ok((binary, mut delimiter_table)) => match Writer::new(args.debug, args.pretty, args.output_filepath, None) {
+            Ok(mut writer) => {
+                match writer.write(binary, &mut delimiter_table) {
+                    Ok(_) => {}
+                    Err(err) => {
+                        println!("Failed to write:\n\t{}", err);
+                        process::exit(1);
+                    }
+                }
+            },
             Err(err) => {
                 println!("Failed to create writer:\n\t{}", err);
                 process::exit(1);

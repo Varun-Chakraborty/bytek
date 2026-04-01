@@ -55,7 +55,7 @@ impl SyntacticParser {
                                 tokens.next();
                                 state = DFAState::AfterLabel;
                             } else {
-                                statement.set_operation_name(
+                                statement.set_identifier(
                                     current_token.value.clone().unwrap(),
                                     current_token.source_loc,
                                 );
@@ -64,7 +64,7 @@ impl SyntacticParser {
                             }
                         }
                         DFAState::AfterLabel => {
-                            statement.set_operation_name(
+                            statement.set_identifier(
                                 current_token.value.clone().unwrap(),
                                 current_token.source_loc,
                             );
@@ -302,7 +302,7 @@ mod tests {
             })
         );
         assert_eq!(
-            statements[0].operation_name,
+            statements[0].identifier,
             Some(StatementField {
                 value: "MOVER".to_string(),
                 loc: SourceLoc { line: 1, column: 7 }
@@ -335,7 +335,7 @@ mod tests {
             })
         );
         assert_eq!(
-            statements[1].operation_name,
+            statements[1].identifier,
             Some(StatementField {
                 value: "MOVER".to_string(),
                 loc: SourceLoc { line: 2, column: 8 }
@@ -386,7 +386,7 @@ mod tests {
         assert_eq!(statements.len(), 1);
         assert_eq!(statements[0].label, None);
         assert_eq!(
-            statements[0].operation_name,
+            statements[0].identifier,
             Some(StatementField {
                 value: "CALL".to_string(),
                 loc: SourceLoc { line: 1, column: 1 }
@@ -420,7 +420,7 @@ mod tests {
         assert_eq!(statements.len(), 1);
         assert_eq!(statements[0].label, None);
         assert_eq!(
-            statements[0].operation_name,
+            statements[0].identifier,
             Some(StatementField {
                 value: "RET".to_string(),
                 loc: SourceLoc { line: 1, column: 1 }
@@ -458,6 +458,7 @@ mod tests {
         let statements = parser.parse(tokens, &source_lines);
         assert!(statements.is_err());
     }
+
     #[test]
     fn test_unusual_statement2() {
         let mut tokens = TokenStream::new();

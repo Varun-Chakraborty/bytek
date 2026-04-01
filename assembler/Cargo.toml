@@ -6,6 +6,5 @@ edition = "2024"
 [dependencies]
 isa = { workspace = true }
 logger = { workspace = true }
-regex = "1.11.2"
 thiserror = { workspace = true }
 args = { workspace = true }

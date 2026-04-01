@@ -5,7 +5,7 @@ mod syntactic_parser;
 use crate::{
     lexer::token::TokenStream,
     parser::{
-        instruction::Instruction,
+        instruction::SemanticNode,
         semantic_parser::{SemanticError, SemanticParser},
         syntactic_parser::{SyntacticError, SyntacticParser},
     },
@@ -36,15 +36,17 @@ impl Parser {
         &mut self,
         tokens: TokenStream,
         source_lines: &Vec<String>,
-    ) -> Result<Vec<Instruction>, ParserError> {
+    ) -> Result<Vec<SemanticNode>, ParserError> {
         let statements = self.syntactic_parser.parse(tokens, source_lines)?;
-        let instructions = self.semantic_parser.parse(statements, source_lines)?;
-        Ok(instructions)
+        let semantic_nodes = self.semantic_parser.parse(statements, source_lines)?;
+        Ok(semantic_nodes)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::parser::instruction::SemanticNode;
+
     use super::{
         super::lexer::token::{SourceLoc, Token, TokenStream, TokenType},
         Parser,
@@ -103,31 +105,36 @@ mod tests {
         });
         let mut parser = Parser::new();
         let source_lines = ["", ""].map(|s| s.to_string()).to_vec();
-        let instructions = parser.parse(tokens, &source_lines).unwrap();
-        assert_eq!(instructions.len(), 1);
-        let instruction = &instructions[0];
-        assert_eq!(
-            instruction.opcode,
-            InstructionField {
-                value: 1,
-                bit_count: 6
+        let semantic_nodes = parser.parse(tokens, &source_lines).unwrap();
+        assert_eq!(semantic_nodes.len(), 1);
+        let semantic_node = &semantic_nodes[0];
+        match semantic_node {
+            SemanticNode::Instruction(instruction) => {
+                assert_eq!(
+                    instruction.opcode,
+                    InstructionField {
+                        value: 1,
+                        bit_count: 6
+                    }
+                );
+                let operands = instruction.operands.as_ref().unwrap();
+                assert_eq!(operands.len(), 2);
+                assert_eq!(
+                    operands[0],
+                    InstructionField {
+                        value: 0,
+                        bit_count: 2
+                    }
+                );
+                assert_eq!(
+                    operands[1],
+                    InstructionField {
+                        value: 0,
+                        bit_count: 4
+                    }
+                );
             }
-        );
-        let operands = instruction.operands.as_ref().unwrap();
-        assert_eq!(operands.len(), 2);
-        assert_eq!(
-            operands[0],
-            InstructionField {
-                value: 0,
-                bit_count: 2
-            }
-        );
-        assert_eq!(
-            operands[1],
-            InstructionField {
-                value: 0,
-                bit_count: 4
-            }
-        );
+            _ => panic!("Unexpected semantic node"),
+        }
     }
 }

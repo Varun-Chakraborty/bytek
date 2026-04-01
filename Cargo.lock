@@ -25,7 +25,6 @@ dependencies = [
  "args",
  "isa",
  "logger",
- "regex",
  "thiserror",
 ]
 
@@ -61,6 +60,8 @@ dependencies = [
 name = "isa"
 version = "0.2.0"
 dependencies = [
+ "once_cell",
+ "regex",
  "thiserror",
 ]
 

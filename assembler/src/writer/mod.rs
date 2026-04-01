@@ -14,21 +14,25 @@ pub enum WriterError {
 pub struct Writer {
     debug: bool,
     pretty: bool,
+    bin_file_name: String,
     bin_file: File,
+    debug_file_name: String,
     debug_file: Option<File>,
 }
 
 impl Writer {
-    pub fn new(debug: bool, pretty: bool) -> Result<Self, WriterError> {
+    pub fn new(debug: bool, pretty: bool, bin_file_name: Option<String>, debug_file_name: Option<String>) -> Result<Self, WriterError> {
         Ok(Self {
             debug,
             pretty,
-            bin_file: File::create("output.bin")?,
+            bin_file: File::create(match &bin_file_name { Some(name) => name, None => "output.bin" })?,
+            bin_file_name: match &bin_file_name { Some(name) => name.clone(), None => String::from("output.bin") },
             debug_file: if debug {
-                Some(File::create("debug.txt")?)
+                Some(File::create(match &debug_file_name { Some(name) => name, None => "debug.txt" })?)
             } else {
                 None
             },
+            debug_file_name: match &debug_file_name { Some(name) => name.clone(), None => String::from("debug.txt") },
         })
     }
 
@@ -38,17 +42,18 @@ impl Writer {
         delimiter_table: &mut DelimiterTable,
     ) -> Result<(), WriterError> {
         let mut bits_written = 0 as usize;
-        if let None = delimiter_table.get_current() {
-            delimiter_table.next();
-        }
-        bytes_stream.iter().try_for_each(|&byte| {
+        delimiter_table.next();
+
+        for byte in &bytes_stream {
+            let byte = *byte;
             self.bin_file.write_all(&[byte])?;
+
             if self.debug {
-                let mut debug_file: &File;
-                match &self.debug_file {
-                    Some(file) => debug_file = file,
-                    None => return Ok(()),
-                }
+                let mut debug_file = match &self.debug_file {
+                    Some(file) => file,
+                    None => continue,
+                };
+
                 for bit in format!("{:0>8b}", byte).chars() {
                     if self.pretty {
                         if let Some(current) = delimiter_table.get_current() {
@@ -62,8 +67,10 @@ impl Writer {
                     debug_file.write_all(bit.to_string().as_bytes())?;
                 }
             }
-            Ok::<(), WriterError>(())
-        })?;
+        }
+
+        println!("Binary file `{}` written with {} bytes", self.bin_file_name, bytes_stream.len());
+        if self.debug {println!("Debug file `{}` written successfully", self.debug_file_name); }
         Ok(())
     }
 }

@@ -1,11 +1,12 @@
 #[derive(Default)]
 pub struct Args {
-    pub input_filename: Option<String>,
+    pub input_filepath: Option<String>,
     pub debug: bool,
     pub pretty: bool,
+    pub log_file_path: String,
     pub log_to: Option<String>,
-    pub path: String,
-    pub filename: Option<String>,
+    pub log_filename: Option<String>,
+    pub output_filepath: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -19,12 +20,13 @@ impl Args {
         let args: Vec<String> = std::env::args().collect();
         if args.len() < 2 {
             return Ok(Self {
-                input_filename: None,
                 debug: false,
                 pretty: false,
+                log_file_path: String::from("/logs/"),
                 log_to: None,
-                path: String::from("/logs/"),
-                filename: None,
+                log_filename: None,
+                input_filepath: None,
+                output_filepath: None,
             });
         }
         let debug = args.contains(&String::from("--debug"));
@@ -39,23 +41,33 @@ impl Args {
         let path = args.iter().fold(
             "",
             |acc, x| {
-                if x.contains("--path=") { &x[7..] } else { acc }
+                if x.contains("--log_path=") { &x[7..] } else { acc }
             },
         );
-        let filename = args.iter().fold(None, |acc, x| {
-            if x.contains("--filename=") {
+        let log_filename = args.iter().fold(None, |acc, x| {
+            if x.contains("--log_filename=") {
                 Some(x[11..].to_string())
             } else {
                 acc
             }
         });
+
+        let output_filepath = args.iter().fold(None, |acc, x| {
+            if x.contains("--out=") {
+                Some(x[6..].to_string())
+            } else {
+                acc
+            }
+        });
+
         Ok(Self {
-            input_filename: Some(args[1].clone()),
+            input_filepath: Some(args[1].clone()),
             debug,
             pretty,
             log_to,
-            path: path.to_string(),
-            filename,
+            log_file_path: path.to_string(),
+            log_filename,
+            output_filepath,
         })
     }
 }

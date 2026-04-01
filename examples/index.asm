@@ -1,13 +1,15 @@
-; MOVEI R1:R0 720
-MOVEI R0, 48
-MOVEI R1, -3
-OUT_16
+MAIN:
+    MOVEI R1, 2
+    MOVEI R2, 3
+    CALL ADD
+    CALL DOUBLE
+    OUT R0
+    HALT
 
-; Addition of -1 and 4; and 255 + 4
-MOVEI R0, -1
-MOVEI R1, 4
-ADD R0, R1
-OUT R0
-MOVEI R1, 0
-ADCI R1, 0
-OUT_16
+ADD:
+    ADD R0, R1, R2
+    RET
+
+DOUBLE:
+    ADD R0, R0, R0
+    RET
