@@ -27,14 +27,18 @@ impl<T: Copy + Default + PrimInt + Debug> Memory<T> {
         if cell > self.mem.len() as u32 - 1 {
             return Err(MemoryError::OutOfBounds);
         }
-        self.mem[cell as usize] = value;
+        self.mem.insert(cell as usize, value);
         Ok(())
     }
 
-    pub fn get(&self, cell: u32) -> Result<T, MemoryError> {
+    pub fn get(&self, cell: u32) -> Result<&T, MemoryError> {
         if cell > self.mem.len() as u32 - 1 {
             return Err(MemoryError::OutOfBounds);
         }
-        Ok(self.mem[cell as usize])
+        Ok(self.mem.get(cell as usize).ok_or(MemoryError::OutOfBounds)?)
+    }
+
+    pub fn reset(&mut self) {
+        self.mem = vec![T::default(); self.mem.len()];
     }
 }

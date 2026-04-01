@@ -15,6 +15,12 @@ pub struct Instruction {
     operands: Vec<u32>,
 }
 
+impl std::fmt::Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Opcode: {}, Operation_name: {}, Operands: {:?}", self.opcode, self.operation_name, self.operands)
+    }
+}
+
 fn get_bits(memory: &Memory<u8>, mut start: u32, bits_count: u32) -> Result<u32, InstructionError> {
     let mut value: u32 = 0;
     for _ in 0..bits_count {
@@ -56,10 +62,6 @@ impl Instruction {
             operands,
             operation_name: operation.operation_name.clone(),
         })
-    }
-
-    pub fn get_opcode(&self) -> u32 {
-        return self.opcode;
     }
 
     pub fn get_operands(&self) -> &Vec<u32> {
