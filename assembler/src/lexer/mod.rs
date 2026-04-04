@@ -1,8 +1,6 @@
 pub mod token;
 
-use crate::lexer::token::{SourceLoc, TokenType};
-
-use self::token::{Token, TokenStream};
+use self::token::{SourceLoc, Token, TokenStream, TokenType};
 use std::mem;
 
 #[derive(Debug, thiserror::Error)]
@@ -77,10 +75,14 @@ impl Lexer {
         assembly_program: &str,
     ) -> Result<(TokenStream, Vec<String>), LexerError> {
         let mut is_comment = false;
+
+        // Split the assembly program into lines for future use
         self.source_lines = assembly_program
             .split('\n')
             .map(|s| s.to_string())
             .collect();
+
+        // Tokenize
         for char in assembly_program.chars() {
             self.column += 1;
             if is_comment {
@@ -96,7 +98,7 @@ impl Lexer {
                 continue;
             }
             match char {
-                ':' | ',' | '+' | '(' | ')' | '&' => {
+                ':' | ',' | '+' | '(' | ')' | '&' | '.' => {
                     self.push_identifier();
                     self.token_loc.line = self.line;
                     self.token_loc.column = self.column;

@@ -4,8 +4,8 @@ use crate::memory::{Memory, MemoryError};
 pub enum InstructionError {
     #[error("{0}")]
     MemoryError(#[from] MemoryError),
-    #[error("Invalid opcode: {0}")]
-    InvalidOpcode(u32),
+    #[error("Invalid opcode: {0} at address: {1}")]
+    InvalidOpcode(u32, u32),
 }
 
 #[derive(Debug)]
@@ -17,7 +17,11 @@ pub struct Instruction {
 
 impl std::fmt::Display for Instruction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Opcode: {}, Operation_name: {}, Operands: {:?}", self.opcode, self.operation_name, self.operands)
+        write!(
+            f,
+            "Opcode: {}, Operation_name: {}, Operands: {:?}",
+            self.opcode, self.operation_name, self.operands
+        )
     }
 }
 
@@ -39,12 +43,13 @@ impl Instruction {
         optspec: &isa::OptSpec,
     ) -> Result<Self, InstructionError> {
         let opcode = get_bits(memory, *pc, optspec.opcode_bit_count as u32)?;
-        *pc += optspec.opcode_bit_count as u32;
 
         let operation = match optspec.get_by_opcode(&opcode) {
             Some(operation) => operation,
-            None => return Err(InstructionError::InvalidOpcode(opcode)),
+            None => return Err(InstructionError::InvalidOpcode(opcode, *pc)),
         };
+
+        *pc += optspec.opcode_bit_count as u32;
 
         let operands = operation.operands.iter().fold(
             Ok(Vec::new()),

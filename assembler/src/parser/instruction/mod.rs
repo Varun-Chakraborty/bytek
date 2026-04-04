@@ -16,6 +16,7 @@ impl std::fmt::Display for StatementField {
 pub struct Statement {
     pub label: Option<StatementField>,
     pub identifier: Option<StatementField>,
+    pub directive: Option<StatementField>,
     pub operands: Option<Vec<StatementField>>,
 }
 
@@ -24,6 +25,7 @@ impl Statement {
         Self {
             label: None,
             identifier: None,
+            directive: None,
             operands: None,
         }
     }
@@ -34,6 +36,10 @@ impl Statement {
 
     pub fn set_identifier(&mut self, value: String, loc: SourceLoc) {
         self.identifier = Some(StatementField { value, loc });
+    }
+
+    pub fn set_directive(&mut self, value: String, loc: SourceLoc) {
+        self.directive = Some(StatementField { value, loc });
     }
 
     pub fn add_operand(&mut self, value: String, loc: SourceLoc) {
@@ -58,7 +64,14 @@ pub struct Instruction {
     pub size: u32,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct RawBinary {
+    pub value: u8,
+    pub bit_count: u32,
+}
+
+#[derive(Debug, Clone)]
 pub enum SemanticNode {
     Instruction(Instruction),
-    Data(u8),
+    RawBinary(RawBinary),
 }

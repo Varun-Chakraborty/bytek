@@ -21,18 +21,35 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub fn new(debug: bool, pretty: bool, bin_file_name: Option<String>, debug_file_name: Option<String>) -> Result<Self, WriterError> {
+    pub fn new(
+        debug: bool,
+        pretty: bool,
+        bin_file_name: Option<String>,
+        debug_file_name: Option<String>,
+    ) -> Result<Self, WriterError> {
         Ok(Self {
             debug,
             pretty,
-            bin_file: File::create(match &bin_file_name { Some(name) => name, None => "output.bin" })?,
-            bin_file_name: match &bin_file_name { Some(name) => name.clone(), None => String::from("output.bin") },
+            bin_file: File::create(match &bin_file_name {
+                Some(name) => name,
+                None => "output.bin",
+            })?,
+            bin_file_name: match &bin_file_name {
+                Some(name) => name.clone(),
+                None => String::from("output.bin"),
+            },
             debug_file: if debug {
-                Some(File::create(match &debug_file_name { Some(name) => name, None => "debug.txt" })?)
+                Some(File::create(match &debug_file_name {
+                    Some(name) => name,
+                    None => "debug.txt",
+                })?)
             } else {
                 None
             },
-            debug_file_name: match &debug_file_name { Some(name) => name.clone(), None => String::from("debug.txt") },
+            debug_file_name: match &debug_file_name {
+                Some(name) => name.clone(),
+                None => String::from("debug.txt"),
+            },
         })
     }
 
@@ -69,8 +86,14 @@ impl Writer {
             }
         }
 
-        println!("Binary file `{}` written with {} bytes", self.bin_file_name, bytes_stream.len());
-        if self.debug {println!("Debug file `{}` written successfully", self.debug_file_name); }
+        println!(
+            "Binary file `{}` written with {} bytes",
+            self.bin_file_name,
+            bytes_stream.len()
+        );
+        if self.debug {
+            println!("Debug file `{}` written successfully", self.debug_file_name);
+        }
         Ok(())
     }
 }

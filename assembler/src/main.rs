@@ -59,21 +59,21 @@ fn main() {
         .expect("Failed to read file");
 
     match assembler.assemble(assembly_program.as_str()) {
-        Ok((binary, mut delimiter_table)) => match Writer::new(args.debug, args.pretty, args.output_filepath, None) {
-            Ok(mut writer) => {
-                match writer.write(binary, &mut delimiter_table) {
+        Ok((binary, mut delimiter_table)) => {
+            match Writer::new(args.debug, args.pretty, args.output_filepath, None) {
+                Ok(mut writer) => match writer.write(binary, &mut delimiter_table) {
                     Ok(_) => {}
                     Err(err) => {
                         println!("Failed to write:\n\t{}", err);
                         process::exit(1);
                     }
+                },
+                Err(err) => {
+                    println!("Failed to create writer:\n\t{}", err);
+                    process::exit(1);
                 }
-            },
-            Err(err) => {
-                println!("Failed to create writer:\n\t{}", err);
-                process::exit(1);
             }
-        },
+        }
         Err(err) => {
             println!("Failed to assemble:\n{}", err);
             process::exit(1);

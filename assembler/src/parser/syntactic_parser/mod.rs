@@ -1,12 +1,10 @@
 use std::mem;
 
-use super::{
-    super::{
-        lexer::token::{TokenStream, TokenType},
-        render_error::{Diagnostic, render_error},
-    },
-    instruction::Statement,
+use super::super::{
+    lexer::token::{TokenStream, TokenType},
+    render_error::{Diagnostic, render_error},
 };
+use super::instruction::Statement;
 
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum SyntacticError {
@@ -18,6 +16,8 @@ pub enum SyntacticError {
 enum DFAState {
     Start,
     AfterLabel,
+    ExpectDirective,
+    AfterDirective,
     AfterOpcode,
     AfterOperand,
     ExpectOperand, // after comma
@@ -71,13 +71,23 @@ impl SyntacticParser {
                             tokens.next();
                             state = DFAState::AfterOpcode;
                         }
-                        DFAState::ExpectOperand | DFAState::AfterOpcode => {
+                        DFAState::ExpectOperand
+                        | DFAState::AfterOpcode
+                        | DFAState::AfterDirective => {
                             statement.add_operand(
                                 current_token.value.clone().unwrap(),
                                 current_token.source_loc,
                             );
                             tokens.next();
                             state = DFAState::AfterOperand;
+                        }
+                        DFAState::ExpectDirective => {
+                            statement.set_directive(
+                                current_token.value.clone().unwrap(),
+                                current_token.source_loc,
+                            );
+                            tokens.next();
+                            state = DFAState::AfterDirective;
                         }
                         _ => {
                             return Err(SyntacticError::UnexpectedToken {
@@ -107,6 +117,11 @@ impl SyntacticParser {
                     {
                         state = DFAState::ExpectOperand;
                         tokens.next();
+                    } else if (state == DFAState::Start || state == DFAState::AfterLabel)
+                        && current_token.value.clone().unwrap().as_str() == "."
+                    {
+                        state = DFAState::ExpectDirective;
+                        tokens.next();
                     } else {
                         return Err(SyntacticError::UnexpectedToken {
                             message: render_error(Diagnostic {
@@ -127,6 +142,12 @@ impl SyntacticParser {
                                     }
                                     DFAState::ExpectOperand => {
                                         "An identifier is expected after comma"
+                                    }
+                                    DFAState::AfterOperand => {
+                                        "Perhaps you meant to use comma(,) instead?"
+                                    }
+                                    DFAState::AfterDirective => {
+                                        "A directive name is expected after '.'"
                                     }
                                     _ => "",
                                 }),
@@ -174,7 +195,21 @@ impl SyntacticParser {
                     }
                     return Ok(mem::take(&mut self.statements));
                 }
-                _ => tokens.next(),
+                TokenType::Whitespace => {
+                    if state == DFAState::ExpectDirective {
+                        return Err(SyntacticError::UnexpectedToken {
+                            message: render_error(Diagnostic {
+                                headline: "Unexpected token".to_string(),
+                                line: current_token.source_loc.line,
+                                source_line: &source_lines
+                                    [current_token.source_loc.line as usize - 1],
+                                column: current_token.source_loc.column,
+                                help: Some("A directive name is expected after '.'"),
+                            }),
+                        });
+                    }
+                    tokens.next();
+                }
             }
         }
     }

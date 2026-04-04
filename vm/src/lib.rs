@@ -5,10 +5,10 @@ mod registers;
 
 use crate::instruction::{Instruction, InstructionError};
 use crate::memory::{Memory, MemoryError};
-use crate::registers::{Registers, RegisterError};
-use isa::OptSpec;
+use crate::registers::{RegisterError, Registers};
+use isa::{MEM_SIZE, OptSpec, REG_COUNT};
 use logger::{LogTo, Logger, LoggerError};
-use std::{num::ParseIntError, io};
+use std::{io, num::ParseIntError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum VMError {
@@ -72,8 +72,8 @@ impl MyVM {
     pub fn new() -> Result<Self, VMError> {
         Ok(Self {
             opt_spec: OptSpec::clone(),
-            memory: Memory::new(256),
-            registers: Registers::new(4, 256),
+            memory: Memory::new(MEM_SIZE),
+            registers: Registers::new(REG_COUNT, MEM_SIZE),
             logger: Logger::new(
                 String::from("vm.txt"),
                 String::from("/logs/"),
@@ -83,10 +83,7 @@ impl MyVM {
         })
     }
 
-    fn execute(
-        &mut self,
-        instruction: Instruction,
-    ) -> Result<ExecutionStep, VMError> {
+    fn execute(&mut self, instruction: Instruction) -> Result<ExecutionStep, VMError> {
         let operands = instruction.get_operands();
 
         let changes = match instruction.get_operation_name().to_lowercase().as_str() {
@@ -95,29 +92,31 @@ impl MyVM {
             "out" => Ok(self.output(operands)?),
             "out_16" => Ok(self.output_16(operands)?),
             "out_char" => Ok(self.output_char(operands)?),
-            
+
             "mover" => Ok(self.mover(operands, false)?),
             "movem" => Ok(self.movem(operands)?),
             "movei" => Ok(self.mover(operands, true)?),
-            
+
             "add" => Ok(self.add(operands, false)?),
             "sub" => Ok(self.sub(operands, false)?),
             "mult" => Ok(self.mult(operands, false)?),
-            
+
             "addi" => Ok(self.add(operands, true)?),
             "subi" => Ok(self.sub(operands, true)?),
             "multi" => Ok(self.mult(operands, true)?),
-            
+
             "adc" => Ok(self.adc(operands, false)?),
             "sbc" => Ok(self.sbc(operands, false)?),
-            
+
             "adci" => Ok(self.adc(operands, true)?),
             "sbci" => Ok(self.sbc(operands, true)?),
-            
+
             "mult_16" => Ok(self.mult_16(operands, false)?),
             "multi_16" => Ok(self.mult_16(operands, true)?),
-            
+
             "jmp" => Ok(self.jmp(operands)?),
+            "jz" => Ok(self.jz(operands)?),
+            "jnz" => Ok(self.jnz(operands)?),
             "push" => Ok(self.push(operands)?),
             "pop" => Ok(self.pop(operands)?),
             "call" => Ok(self.call(operands)?),
@@ -137,11 +136,7 @@ impl MyVM {
     }
 
     pub fn step(&mut self) -> Result<ExecutionStep, VMError> {
-        let instruction = Instruction::new(
-            &self.memory,
-            &mut self.registers.pc,
-            &self.opt_spec,
-        )?;
+        let instruction = Instruction::new(&self.memory, &mut self.registers.pc, &self.opt_spec)?;
 
         if self.debug {
             self.logger.log(format!(

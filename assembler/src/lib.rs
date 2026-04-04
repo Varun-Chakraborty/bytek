@@ -49,8 +49,8 @@ impl MyAssembler {
         println!("Assembling...");
         let (mut tokens, source_lines) = lexer.lex(assembly_program)?;
         preprocessor.preprocess(&mut tokens, &source_lines)?;
-        let instructions = parser.parse(tokens, &source_lines)?;
-        let (binary, delimiter_table) = encoder.encode(instructions)?;
+        let semantic_nodes = parser.parse(tokens, &source_lines)?;
+        let (binary, delimiter_table) = encoder.encode(semantic_nodes)?;
 
         Ok((binary, delimiter_table))
     }

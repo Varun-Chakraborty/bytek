@@ -8,3 +8,5 @@ isa = { workspace = true }
 logger = { workspace = true }
 thiserror = { workspace = true }
 args = { workspace = true }
+regex = "1.11.2"
+once_cell = "1.18.0"

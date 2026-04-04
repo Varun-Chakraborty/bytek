@@ -1,13 +1,27 @@
 use std::fmt::Display;
 
-use once_cell::sync::Lazy;
-use regex::Regex;
+pub static REG_COUNT: u32 = 3;
+pub static MEM_SIZE: u32 = 256;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AddressType {
+    Code,
+    Data,
+}
+
+impl Display for AddressType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AddressType::Code => write!(f, "Code"),
+            AddressType::Data => write!(f, "Data"),
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum OperandType {
     Register,
-    MemoryAddress,
-    Label,
+    MemoryAddress(AddressType),
     Constant,
 }
 
@@ -15,29 +29,18 @@ impl Display for OperandType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             OperandType::Register => write!(f, "Register"),
-            OperandType::MemoryAddress => write!(f, "MemoryAddress"),
-            OperandType::Label => write!(f, "Label"),
+            OperandType::MemoryAddress(AddressType::Code) => write!(f, "MemoryAddress (Code)"),
+            OperandType::MemoryAddress(AddressType::Data) => write!(f, "MemoryAddress (Data)"),
             OperandType::Constant => write!(f, "Constant"),
         }
     }
 }
 
-pub struct OperandDef {
-    pub operand_regex: Lazy<Regex>,
-    pub operand_type: OperandType,
-    
-}
-
 #[derive(Clone)]
 pub struct OperandSpec {
-    pub operand_def: &'static OperandDef,
+    pub operand_type: OperandType,
     pub bit_count: u8,
 }
-
-pub static REGISTER: OperandDef = OperandDef { operand_regex: Lazy::new(|| Regex::new("^R[0-3]$").unwrap()), operand_type: OperandType::Register };
-pub static MEMORY_ADDRESS: OperandDef = OperandDef { operand_regex: Lazy::new(|| Regex::new("^[0-9]+$").unwrap()), operand_type: OperandType::MemoryAddress };
-pub static LABEL: OperandDef = OperandDef { operand_regex: Lazy::new(|| Regex::new("^[A-Z]+$").unwrap()), operand_type: OperandType::Label };
-pub static CONSTANT: OperandDef = OperandDef { operand_regex: Lazy::new(|| Regex::new("^-?[0-9]+$").unwrap()), operand_type: OperandType::Constant };
 
 pub struct Operation {
     pub operation_name: String,
@@ -60,10 +63,22 @@ pub struct OptSpec {
 
 impl OptSpec {
     pub fn clone() -> Self {
-        static REG: OperandSpec = OperandSpec { operand_def: &REGISTER, bit_count: 2 };
-        static MEM: OperandSpec = OperandSpec { operand_def: &MEMORY_ADDRESS, bit_count: 4 };
-        static LABEL_: OperandSpec = OperandSpec { operand_def: &LABEL, bit_count: 8 };
-        static CONST: OperandSpec = OperandSpec { operand_def: &CONSTANT, bit_count: 8 };
+        static REG: OperandSpec = OperandSpec {
+            operand_type: OperandType::Register,
+            bit_count: 2,
+        };
+        static MEM_C: OperandSpec = OperandSpec {
+            operand_type: OperandType::MemoryAddress(AddressType::Code),
+            bit_count: 10,
+        };
+        static MEM_D: OperandSpec = OperandSpec {
+            operand_type: OperandType::MemoryAddress(AddressType::Data),
+            bit_count: 8,
+        };
+        static CONST: OperandSpec = OperandSpec {
+            operand_type: OperandType::Constant,
+            bit_count: 8,
+        };
 
         Self {
             opcode_bit_count: 6,
@@ -73,36 +88,28 @@ impl OptSpec {
                 Operation::new("OUT", vec![&REG]),
                 Operation::new("OUT_16", vec![]),
                 Operation::new("OUT_CHAR", vec![&REG]),
-                
-                Operation::new("MOVER", vec![&REG, &MEM]),
-                Operation::new("MOVEM", vec![&REG, &MEM]),
+                Operation::new("MOVER", vec![&REG, &MEM_D]),
+                Operation::new("MOVEM", vec![&REG, &MEM_D]),
                 Operation::new("MOVEI", vec![&REG, &CONST]),
-                
                 Operation::new("ADD", vec![&REG, &REG, &REG]),
                 Operation::new("SUB", vec![&REG, &REG, &REG]),
                 Operation::new("MULT", vec![&REG, &REG, &REG]),
-                
                 Operation::new("ADDI", vec![&REG, &REG, &CONST]),
                 Operation::new("SUBI", vec![&REG, &REG, &CONST]),
                 Operation::new("MULTI", vec![&REG, &REG, &CONST]),
-                
                 Operation::new("ADC", vec![&REG, &REG, &REG]),
                 Operation::new("SBC", vec![&REG, &REG, &REG]),
-                
                 Operation::new("ADCI", vec![&REG, &REG, &CONST]),
                 Operation::new("SBCI", vec![&REG, &REG, &CONST]),
-                
                 Operation::new("MULT_16", vec![&REG]),
                 Operation::new("MULTI_16", vec![&CONST]),
-                
-                Operation::new("JMP", vec![&LABEL_]),
-                Operation::new("JZ", vec![&LABEL_]),
-                Operation::new("JNZ", vec![&LABEL_]),
+                Operation::new("JMP", vec![&MEM_C]),
+                Operation::new("JZ", vec![&MEM_C]),
+                Operation::new("JNZ", vec![&MEM_C]),
                 Operation::new("PUSH", vec![&REG]),
                 Operation::new("POP", vec![&REG]),
-                Operation::new("CALL", vec![&LABEL_]),
+                Operation::new("CALL", vec![&MEM_C]),
                 Operation::new("RET", vec![]),
-
                 // Operation::new("AND", vec![&REG, &REG, &REG]),
                 // Operation::new("OR", vec![&REG, &REG, &REG]),
                 // Operation::new("XOR", vec![&REG, &REG, &REG]),
@@ -111,12 +118,12 @@ impl OptSpec {
                 // Operation::new("SHR", vec![&REG]),
                 // Operation::new("CMP", vec![&REG, &REG]),
                 // Operation::new("CMPI", vec![&REG, &CONST]),
-                // Operation::new("JG", vec![&LABEL_]),
-                // Operation::new("JGE", vec![&LABEL_]),
-                // Operation::new("JL", vec![&LABEL_]),
-                // Operation::new("JLE", vec![&LABEL_]),
-                // Operation::new("JNE", vec![&LABEL_]),
-                // Operation::new("JE", vec![&LABEL_]),
+                // Operation::new("JG", vec![&MEM_C]),
+                // Operation::new("JGE", vec![&MEM_C]),
+                // Operation::new("JL", vec![&MEM_C]),
+                // Operation::new("JLE", vec![&MEM_C]),
+                // Operation::new("JNE", vec![&MEM_C]),
+                // Operation::new("JE", vec![&MEM_C]),
             ],
         }
     }

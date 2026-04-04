@@ -14,11 +14,11 @@ pub struct GeneralRegisters<T> {
     pub regs: Vec<T>,
 }
 
-impl <T: Copy + Default + PrimInt + Debug + std::fmt::Display> GeneralRegisters<T> {
+impl<T: Copy + Default + PrimInt + Debug + std::fmt::Display> GeneralRegisters<T> {
     pub fn new(count: u32) -> Self {
         return Self {
             count,
-            regs: vec![T::default(); count as usize]
+            regs: vec![T::default(); count as usize],
         };
     }
 
@@ -42,7 +42,7 @@ pub struct Registers<T> {
     pub sp: u32,
     pub pc: u32,
     pub eof: u32,
-    memory_size: u32
+    memory_size: u32,
 }
 
 impl<T: Copy + Default + PrimInt + Debug + std::fmt::Display> Registers<T> {
@@ -58,7 +58,7 @@ impl<T: Copy + Default + PrimInt + Debug + std::fmt::Display> Registers<T> {
             sp: memory_size - 1,
             pc: 0,
             eof: 0,
-            memory_size
+            memory_size,
         };
     }
 
@@ -75,9 +75,13 @@ impl<T: Copy + Default + PrimInt + Debug + std::fmt::Display> Registers<T> {
         if register > self.general_regs.count - 1 {
             return Err(RegisterError::InvalidRegister(register));
         }
-        Ok(self.general_regs.regs.get(register as usize).ok_or(RegisterError::InvalidRegister(register))?)
+        Ok(self
+            .general_regs
+            .regs
+            .get(register as usize)
+            .ok_or(RegisterError::InvalidRegister(register))?)
     }
-    
+
     pub fn set_flag(&mut self, flag: &str, value: bool) {
         match flag {
             "zero" => self.flags.zero = value,

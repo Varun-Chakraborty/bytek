@@ -77,6 +77,10 @@ impl MyVM {
             *self.memory.get(operands[1])?
         };
         self.registers.set_general(registers, value)?;
+        self.registers.set_flag("zero", value == 0);
+        self.registers.set_flag("sign", (value & (1 << 7)) != 0);
+        self.registers.set_flag("carry", value & 0b1000_0000 != 0);
+        self.registers.set_flag("overflow", false);
         Ok(Delta {
             registers: vec![format!("R{registers}")],
             flags: vec![],
@@ -97,6 +101,10 @@ impl MyVM {
         let memory = operands[1];
         let value = *self.registers.get_general(registers)?;
         self.memory.set(memory, value)?;
+        self.registers.set_flag("zero", value == 0);
+        self.registers.set_flag("sign", (value & (1 << 7)) != 0);
+        self.registers.set_flag("carry", value & 0b1000_0000 != 0);
+        self.registers.set_flag("overflow", false);
         Ok(Delta {
             registers: vec![],
             flags: vec![],
@@ -267,127 +275,6 @@ impl MyVM {
         })
     }
 
-    pub fn cmp(&mut self, operands: &[u32], immediate: bool) -> Result<Delta, VMError> {
-        let num1 = *self.registers.get_general(operands[0])? as i8;
-        let num2 = if immediate {
-            operands[1] as i8
-        } else {
-            *self.registers.get_general(operands[1])? as i8
-        };
-        let (diff, carry) = num1.overflowing_sub(num2);
-        self.registers.set_flag("sign", diff < 0);
-        self.registers.set_flag("zero", diff == 0);
-        self.registers.set_flag("carry", carry);
-        self.registers
-            .set_flag("overflow", ((num1 ^ num2) & (num1 ^ diff)) & (1 << 7) != 0);
-        Ok(Delta {
-            registers: vec![],
-            flags: vec![],
-            memory_access: None,
-        })
-    }
-
-    pub fn and(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
-        let dest = operands[0];
-        let num1 = *self.registers.get_general(operands[1])?;
-        let num2 = *self.registers.get_general(operands[2])?;
-        let product = num1 & num2;
-        self.registers.set_flag("zero", product == 0);
-        self.registers.set_flag("sign", (product & (1 << 7)) != 0);
-        self.registers.set_flag("overflow", false);
-        self.registers.set_flag("carry", false);
-        self.registers.set_general(dest, product)?;
-        Ok(Delta {
-            registers: vec![],
-            flags: vec![],
-            memory_access: None,
-        })
-    }
-
-    pub fn or(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
-        let dest = operands[0];
-        let num1 = *self.registers.get_general(operands[1])?;
-        let num2 = *self.registers.get_general(operands[2])?;
-        let product = num1 | num2;
-        self.registers.set_flag("zero", product == 0);
-        self.registers.set_flag("sign", (product & (1 << 7)) != 0);
-        self.registers.set_flag("overflow", false);
-        self.registers.set_flag("carry", false);
-        self.registers.set_general(dest, product)?;
-        Ok(Delta {
-            registers: vec![],
-            flags: vec![],
-            memory_access: None,
-        })
-    }
-
-    pub fn xor(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
-        let dest = operands[0];
-        let num1 = *self.registers.get_general(operands[1])?;
-        let num2 = *self.registers.get_general(operands[2])?;
-        let product = num1 ^ num2;
-        self.registers.set_flag("zero", product == 0);
-        self.registers.set_flag("sign", (product & (1 << 7)) != 0);
-        self.registers.set_flag("overflow", false);
-        self.registers.set_flag("carry", false);
-        self.registers.set_general(dest, product)?;
-        Ok(Delta {
-            registers: vec![],
-            flags: vec![],
-            memory_access: None,
-        })
-    }
-
-    pub fn not(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
-        let dest = operands[0];
-        let num1 = *self.registers.get_general(operands[1])?;
-        let product = !num1;
-        self.registers.set_flag("zero", product == 0);
-        self.registers.set_flag("sign", (product & (1 << 7)) != 0);
-        self.registers.set_flag("overflow", false);
-        self.registers.set_flag("carry", false);
-        self.registers.set_general(dest, product)?;
-        Ok(Delta {
-            registers: vec![],
-            flags: vec![],
-            memory_access: None,
-        })
-    }
-
-    pub fn shl(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
-        let reg = operands[0];
-        let value = *self.registers.get_general(reg)?;
-        self.registers.set_flag("carry", (value & (1 << 7)) != 0);
-        let shifted_value = value << 1;
-        self.registers.set_flag("zero", shifted_value == 0);
-        self.registers
-            .set_flag("sign", (shifted_value & (1 << 7)) != 0);
-        self.registers
-            .set_flag("overflow", ((shifted_value ^ value) & (1 << 7)) != 0);
-        self.registers.set_general(operands[0], shifted_value)?;
-        Ok(Delta {
-            registers: vec![],
-            flags: vec![],
-            memory_access: None,
-        })
-    }
-
-    pub fn shr(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
-        let reg = operands[0];
-        let value = *self.registers.get_general(reg)? as i8;
-        self.registers.set_flag("carry", (value & 1) != 0);
-        let value = value >> 1;
-        self.registers.set_flag("zero", value == 0);
-        self.registers.set_flag("sign", (value & (1 << 7)) != 0);
-        self.registers.set_flag("overflow", false);
-        self.registers.set_general(operands[0], value as u8)?;
-        Ok(Delta {
-            registers: vec![],
-            flags: vec![],
-            memory_access: None,
-        })
-    }
-
     pub fn push(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
         let reg = operands[0];
         let value = *self.registers.get_general(reg)?;
@@ -460,4 +347,149 @@ impl MyVM {
             memory_access: None,
         })
     }
+
+    pub fn jz(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
+        let address = operands[0];
+        if self.registers.get_flag("zero") {
+            self.registers.pc = address;
+        }
+        Ok(Delta {
+            registers: vec![],
+            flags: vec![],
+            memory_access: None,
+        })
+    }
+
+    pub fn jnz(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
+        let address = operands[0];
+        if !self.registers.get_flag("zero") {
+            self.registers.pc = address;
+        }
+        Ok(Delta {
+            registers: vec![],
+            flags: vec![],
+            memory_access: None,
+        })
+    }
+
+    // pub fn cmp(&mut self, operands: &[u32], immediate: bool) -> Result<Delta, VMError> {
+    //     let num1 = *self.registers.get_general(operands[0])? as i8;
+    //     let num2 = if immediate {
+    //         operands[1] as i8
+    //     } else {
+    //         *self.registers.get_general(operands[1])? as i8
+    //     };
+    //     let (diff, carry) = num1.overflowing_sub(num2);
+    //     self.registers.set_flag("sign", diff < 0);
+    //     self.registers.set_flag("zero", diff == 0);
+    //     self.registers.set_flag("carry", carry);
+    //     self.registers
+    //         .set_flag("overflow", ((num1 ^ num2) & (num1 ^ diff)) & (1 << 7) != 0);
+    //     Ok(Delta {
+    //         registers: vec![],
+    //         flags: vec![],
+    //         memory_access: None,
+    //     })
+    // }
+
+    // pub fn and(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
+    //     let dest = operands[0];
+    //     let num1 = *self.registers.get_general(operands[1])?;
+    //     let num2 = *self.registers.get_general(operands[2])?;
+    //     let product = num1 & num2;
+    //     self.registers.set_flag("zero", product == 0);
+    //     self.registers.set_flag("sign", (product & (1 << 7)) != 0);
+    //     self.registers.set_flag("overflow", false);
+    //     self.registers.set_flag("carry", false);
+    //     self.registers.set_general(dest, product)?;
+    //     Ok(Delta {
+    //         registers: vec![],
+    //         flags: vec![],
+    //         memory_access: None,
+    //     })
+    // }
+
+    // pub fn or(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
+    //     let dest = operands[0];
+    //     let num1 = *self.registers.get_general(operands[1])?;
+    //     let num2 = *self.registers.get_general(operands[2])?;
+    //     let product = num1 | num2;
+    //     self.registers.set_flag("zero", product == 0);
+    //     self.registers.set_flag("sign", (product & (1 << 7)) != 0);
+    //     self.registers.set_flag("overflow", false);
+    //     self.registers.set_flag("carry", false);
+    //     self.registers.set_general(dest, product)?;
+    //     Ok(Delta {
+    //         registers: vec![],
+    //         flags: vec![],
+    //         memory_access: None,
+    //     })
+    // }
+
+    // pub fn xor(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
+    //     let dest = operands[0];
+    //     let num1 = *self.registers.get_general(operands[1])?;
+    //     let num2 = *self.registers.get_general(operands[2])?;
+    //     let product = num1 ^ num2;
+    //     self.registers.set_flag("zero", product == 0);
+    //     self.registers.set_flag("sign", (product & (1 << 7)) != 0);
+    //     self.registers.set_flag("overflow", false);
+    //     self.registers.set_flag("carry", false);
+    //     self.registers.set_general(dest, product)?;
+    //     Ok(Delta {
+    //         registers: vec![],
+    //         flags: vec![],
+    //         memory_access: None,
+    //     })
+    // }
+
+    // pub fn not(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
+    //     let dest = operands[0];
+    //     let num1 = *self.registers.get_general(operands[1])?;
+    //     let product = !num1;
+    //     self.registers.set_flag("zero", product == 0);
+    //     self.registers.set_flag("sign", (product & (1 << 7)) != 0);
+    //     self.registers.set_flag("overflow", false);
+    //     self.registers.set_flag("carry", false);
+    //     self.registers.set_general(dest, product)?;
+    //     Ok(Delta {
+    //         registers: vec![],
+    //         flags: vec![],
+    //         memory_access: None,
+    //     })
+    // }
+
+    // pub fn shl(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
+    //     let reg = operands[0];
+    //     let value = *self.registers.get_general(reg)?;
+    //     self.registers.set_flag("carry", (value & (1 << 7)) != 0);
+    //     let shifted_value = value << 1;
+    //     self.registers.set_flag("zero", shifted_value == 0);
+    //     self.registers
+    //         .set_flag("sign", (shifted_value & (1 << 7)) != 0);
+    //     self.registers
+    //         .set_flag("overflow", ((shifted_value ^ value) & (1 << 7)) != 0);
+    //     self.registers.set_general(operands[0], shifted_value)?;
+    //     Ok(Delta {
+    //         registers: vec![],
+    //         flags: vec![],
+    //         memory_access: None,
+    //     })
+    // }
+
+    // pub fn shr(&mut self, operands: &[u32]) -> Result<Delta, VMError> {
+    //     let reg = operands[0];
+    //     let value = *self.registers.get_general(reg)? as i8;
+    //     self.registers.set_flag("carry", (value & 1) != 0);
+    //     let value = value >> 1;
+    //     self.registers.set_flag("zero", value == 0);
+    //     self.registers.set_flag("sign", (value & (1 << 7)) != 0);
+    //     self.registers.set_flag("overflow", false);
+    //     self.registers.set_general(operands[0], value as u8)?;
+    //     Ok(Delta {
+    //         registers: vec![],
+    //         flags: vec![],
+    //         memory_access: None,
+    //     })
+    // }
 }

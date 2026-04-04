@@ -81,117 +81,123 @@
 ; Welcome message
 JMP START
 
+.align
+
 MESSAGE:
 ;WELCOME
-DB 87
-DB 101
-DB 108
-DB 99
-DB 111
-DB 109
-DB 101
+.byte 87
+.byte 101
+.byte 108
+.byte 99
+.byte 111
+.byte 109
+.byte 101
 
 ;SPACE
-DB 32
+.byte 32
 
 ;TO
-DB 116
-DB 111
+.byte 116
+.byte 111
 
 ;SPACE
-DB 32
+.byte 32
 
 ;THE
-DB 116
-DB 104
-DB 101
+.byte 116
+.byte 104
+.byte 101
 
 ;SPACE
-DB 32
+.byte 32
 
 ;KERNEL
-DB 107
-DB 101
-DB 114
-DB 110
-DB 101
-DB 108
+.byte 107
+.byte 101
+.byte 114
+.byte 110
+.byte 101
+.byte 108
 
 ;EXCLAMATION
-DB 33
+.byte 33
 
 ;NEWLINE
-DB 10
+.byte 10
 
 ;TYPE
-DB 84
-DB 121
-DB 112
-DB 101
+.byte 84
+.byte 121
+.byte 112
+.byte 101
 
 ;SPACE
-DB 32
+.byte 32
 
 ;SINGLEQUOTE
-DB 39
+.byte 39
 
 ;HELP
-DB 104
-DB 101
-DB 108
-DB 112
+.byte 104
+.byte 101
+.byte 108
+.byte 112
 
 ;SINGLEQUOTE
-DB 39
+.byte 39
 
 ;SPACE
-DB 32
+.byte 32
 
 ;FOR
-DB 102
-DB 111
-DB 114
+.byte 102
+.byte 111
+.byte 114
 
 ;SPACE
-DB 32
+.byte 32
 
 ;A
-DB 97
+.byte 97
 
 ;SPACE
-DB 32
+.byte 32
 
 ;LIST
-DB 108
-DB 105
-DB 115
-DB 116
+.byte 108
+.byte 105
+.byte 115
+.byte 116
 
 ;SPACE
-DB 32
+.byte 32
 
 ;OF
-DB 111
-DB 102
+.byte 111
+.byte 102
 
 ;SPACE
-DB 32
+.byte 32
 
 ;COMMANDS
-DB 99
-DB 111
-DB 109
-DB 109
-DB 97
-DB 110
-DB 100
-DB 115
+.byte 99
+.byte 111
+.byte 109
+.byte 109
+.byte 97
+.byte 110
+.byte 100
+.byte 115
 
 ;FULLSTOP
-DB 46
+.byte 46
 
 ;NEWLINE
-DB 10
+.byte 10
+
+;\NULL
+.byte 0
 
 START:
-    MOVEM R0, MESSAGE
+    MOVER R0, MESSAGE
+    OUT_CHAR R0

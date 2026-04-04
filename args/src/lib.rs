@@ -38,12 +38,13 @@ impl Args {
                 acc
             }
         });
-        let path = args.iter().fold(
-            "",
-            |acc, x| {
-                if x.contains("--log_path=") { &x[7..] } else { acc }
-            },
-        );
+        let path = args.iter().fold("", |acc, x| {
+            if x.contains("--log_path=") {
+                &x[7..]
+            } else {
+                acc
+            }
+        });
         let log_filename = args.iter().fold(None, |acc, x| {
             if x.contains("--log_filename=") {
                 Some(x[11..].to_string())

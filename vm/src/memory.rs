@@ -35,7 +35,10 @@ impl<T: Copy + Default + PrimInt + Debug> Memory<T> {
         if cell > self.mem.len() as u32 - 1 {
             return Err(MemoryError::OutOfBounds);
         }
-        Ok(self.mem.get(cell as usize).ok_or(MemoryError::OutOfBounds)?)
+        Ok(self
+            .mem
+            .get(cell as usize)
+            .ok_or(MemoryError::OutOfBounds)?)
     }
 
     pub fn reset(&mut self) {

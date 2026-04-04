@@ -39,6 +39,7 @@ impl Parser {
     ) -> Result<Vec<SemanticNode>, ParserError> {
         let statements = self.syntactic_parser.parse(tokens, source_lines)?;
         let semantic_nodes = self.semantic_parser.parse(statements, source_lines)?;
+
         Ok(semantic_nodes)
     }
 }
