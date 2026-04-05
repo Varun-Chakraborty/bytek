@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
 pub static REG_COUNT: u32 = 3;
-pub static MEM_SIZE: u32 = 256;
+pub static MEM_SIZE: u32 = 256; // bits
+pub static WORD_SIZE: u32 = 8; // bits
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AddressType {
@@ -39,7 +40,7 @@ impl Display for OperandType {
 #[derive(Clone)]
 pub struct OperandSpec {
     pub operand_type: OperandType,
-    pub bit_count: u8,
+    pub bit_count: u32,
 }
 
 pub struct Operation {
@@ -57,7 +58,7 @@ impl Operation {
 }
 
 pub struct OptSpec {
-    pub opcode_bit_count: u8,
+    pub opcode_bit_count: u32,
     opttab: Vec<Operation>,
 }
 

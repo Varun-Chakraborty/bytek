@@ -62,7 +62,7 @@ impl Args {
         });
 
         Ok(Self {
-            input_filepath: Some(args[1].clone()),
+            input_filepath: args.get(1).cloned(),
             debug,
             pretty,
             log_to,

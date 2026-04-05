@@ -63,9 +63,9 @@ pub struct ExecutionStep {
 }
 
 #[derive(Clone)]
-pub struct VMState {
-    pub registers: Registers<u8>,
-    pub memory: Memory<u8>,
+pub struct VMState<'a> {
+    pub registers: &'a Registers<u8>,
+    pub memory: &'a Memory<u8>,
 }
 
 impl MyVM {
@@ -165,10 +165,10 @@ impl MyVM {
         self.memory.reset();
     }
 
-    pub fn get_state(&self) -> VMState {
+    pub fn get_state(&self) -> VMState<'_> {
         VMState {
-            registers: self.registers.clone(),
-            memory: self.memory.clone(),
+            registers: &self.registers,
+            memory: &self.memory,
         }
     }
 

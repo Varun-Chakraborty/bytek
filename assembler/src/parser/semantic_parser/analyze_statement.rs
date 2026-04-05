@@ -21,7 +21,7 @@ impl SemanticParser {
                         headline: format!("Unknown opcode '{}'", identifier.value),
                         line: identifier.loc.line,
                         column: identifier.loc.column,
-                        source_line: &source_lines[identifier.loc.line as usize - 1].clone(),
+                        source_line: &source_lines[identifier.loc.line as usize - 1],
                         help: None,
                     }),
                 });
@@ -36,7 +36,7 @@ impl SemanticParser {
                     message: render_error(Diagnostic {
                         headline: "Too few operands".to_string(),
                         line: identifier.loc.line,
-                        source_line: &source_lines[identifier.loc.line as usize - 1].clone(),
+                        source_line: &source_lines[identifier.loc.line as usize - 1],
                         column: identifier.loc.column,
                         help: Some(
                             format!(
@@ -53,7 +53,7 @@ impl SemanticParser {
                     message: render_error(Diagnostic {
                         headline: "Too many operands".to_string(),
                         line: identifier.loc.line,
-                        source_line: &source_lines[identifier.loc.line as usize - 1].clone(),
+                        source_line: &source_lines[identifier.loc.line as usize - 1],
                         column: identifier.loc.column,
                         help: Some(
                             format!(
@@ -74,7 +74,7 @@ impl SemanticParser {
                     message: render_error(Diagnostic {
                         headline: "Missing operands".to_string(),
                         line: identifier.loc.line,
-                        source_line: &source_lines[identifier.loc.line as usize - 1].clone(),
+                        source_line: &source_lines[identifier.loc.line as usize - 1],
                         column: identifier.loc.column,
                         help: Some(
                             format!(
@@ -100,10 +100,10 @@ impl SemanticParser {
 
         let operands = operands?;
 
-        let size = (self.optspec.opcode_bit_count
+        let size = self.optspec.opcode_bit_count
             + operands
                 .iter()
-                .fold(0, |acc, operand| acc + operand.bit_count)) as u32;
+                .fold(0, |acc, operand| acc + operand.bit_count);
 
         self.statement_counter += 1;
 

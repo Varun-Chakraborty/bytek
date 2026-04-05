@@ -54,7 +54,7 @@ impl Statement {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct InstructionField {
     pub value: u32,
-    pub bit_count: u8,
+    pub bit_count: u32,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -66,7 +66,7 @@ pub struct Instruction {
 
 #[derive(Debug, Clone, Default)]
 pub struct RawBinary {
-    pub value: u8,
+    pub value: u32,
     pub bit_count: u32,
 }
 

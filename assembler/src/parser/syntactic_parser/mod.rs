@@ -41,65 +41,43 @@ impl SyntacticParser {
         let mut state = DFAState::Start;
         loop {
             let current_token = tokens.seek(0).unwrap();
+            let value = current_token.value.clone().unwrap();
+            let source_loc = current_token.source_loc;
             match current_token.token_type {
                 TokenType::Identifier => {
                     match state {
                         DFAState::Start => {
                             // label or opcode
                             if let Some(':') = tokens.seek_as_symbol(1) {
-                                statement.set_label(
-                                    current_token.value.clone().unwrap(),
-                                    current_token.source_loc,
-                                );
-                                tokens.next();
-                                tokens.next();
+                                statement.set_label(value, source_loc);
                                 state = DFAState::AfterLabel;
-                            } else {
-                                statement.set_identifier(
-                                    current_token.value.clone().unwrap(),
-                                    current_token.source_loc,
-                                );
                                 tokens.next();
+                            } else {
+                                statement.set_identifier(value, source_loc);
                                 state = DFAState::AfterOpcode;
                             }
                         }
                         DFAState::AfterLabel => {
-                            statement.set_identifier(
-                                current_token.value.clone().unwrap(),
-                                current_token.source_loc,
-                            );
-                            tokens.next();
+                            statement.set_identifier(value, source_loc);
                             state = DFAState::AfterOpcode;
                         }
                         DFAState::ExpectOperand
                         | DFAState::AfterOpcode
                         | DFAState::AfterDirective => {
-                            statement.add_operand(
-                                current_token.value.clone().unwrap(),
-                                current_token.source_loc,
-                            );
-                            tokens.next();
+                            statement.add_operand(value, source_loc);
                             state = DFAState::AfterOperand;
                         }
                         DFAState::ExpectDirective => {
-                            statement.set_directive(
-                                current_token.value.clone().unwrap(),
-                                current_token.source_loc,
-                            );
-                            tokens.next();
+                            statement.set_directive(value, source_loc);
                             state = DFAState::AfterDirective;
                         }
                         _ => {
                             return Err(SyntacticError::UnexpectedToken {
                                 message: render_error(Diagnostic {
-                                    headline: format!(
-                                        "Unexpected identifier '{}'",
-                                        current_token.value.clone().unwrap()
-                                    ),
-                                    line: current_token.source_loc.line,
-                                    source_line: &source_lines
-                                        [current_token.source_loc.line as usize - 1],
-                                    column: current_token.source_loc.column,
+                                    headline: format!("Unexpected identifier '{}'", value),
+                                    line: source_loc.line,
+                                    source_line: &source_lines[source_loc.line as usize - 1],
+                                    column: source_loc.column,
                                     help: Some(match state {
                                         DFAState::AfterOperand => {
                                             "Perhaps you meant to use comma(,) instead?"
@@ -110,29 +88,22 @@ impl SyntacticParser {
                             });
                         }
                     }
+                    tokens.next();
                 }
                 TokenType::Symbol => {
-                    if state == DFAState::AfterOperand
-                        && current_token.value.clone().unwrap().as_str() == ","
-                    {
+                    if state == DFAState::AfterOperand && value.as_str() == "," {
                         state = DFAState::ExpectOperand;
-                        tokens.next();
                     } else if (state == DFAState::Start || state == DFAState::AfterLabel)
-                        && current_token.value.clone().unwrap().as_str() == "."
+                        && value.as_str() == "."
                     {
                         state = DFAState::ExpectDirective;
-                        tokens.next();
                     } else {
                         return Err(SyntacticError::UnexpectedToken {
                             message: render_error(Diagnostic {
-                                headline: format!(
-                                    "Unexpected symbol '{}'",
-                                    current_token.value.clone().unwrap()
-                                ),
-                                line: current_token.source_loc.line,
-                                source_line: &source_lines
-                                    [current_token.source_loc.line as usize - 1],
-                                column: current_token.source_loc.column,
+                                headline: format!("Unexpected symbol '{}'", value),
+                                line: source_loc.line,
+                                source_line: &source_lines[source_loc.line as usize - 1],
+                                column: source_loc.column,
                                 help: Some(match state {
                                     DFAState::AfterLabel => {
                                         "Labels must be followed by single colon(:) and then an identifier (opcode) should follow"
@@ -154,6 +125,7 @@ impl SyntacticParser {
                             }),
                         });
                     }
+                    tokens.next();
                 }
                 TokenType::Newline => {
                     match state {
@@ -161,10 +133,20 @@ impl SyntacticParser {
                             return Err(SyntacticError::UnexpectedToken {
                                 message: render_error(Diagnostic {
                                     headline: "An identifier is expected after comma".to_string(),
-                                    line: current_token.source_loc.line,
-                                    source_line: &source_lines
-                                        [current_token.source_loc.line as usize - 1],
-                                    column: current_token.source_loc.column,
+                                    line: source_loc.line,
+                                    source_line: &source_lines[source_loc.line as usize - 1],
+                                    column: source_loc.column,
+                                    help: None,
+                                }),
+                            });
+                        }
+                        DFAState::ExpectDirective => {
+                            return Err(SyntacticError::UnexpectedToken {
+                                message: render_error(Diagnostic {
+                                    headline: "A directive name is expected after dot".to_string(),
+                                    line: source_loc.line,
+                                    source_line: &source_lines[source_loc.line as usize - 1],
+                                    column: source_loc.column,
                                     help: None,
                                 }),
                             });
@@ -173,8 +155,8 @@ impl SyntacticParser {
                         _ => self.statements.push(statement),
                     }
                     statement = Statement::new();
-                    tokens.next();
                     state = DFAState::Start;
+                    tokens.next();
                 }
                 TokenType::Eof => {
                     match state {
@@ -182,10 +164,9 @@ impl SyntacticParser {
                             return Err(SyntacticError::UnexpectedToken {
                                 message: render_error(Diagnostic {
                                     headline: "An identifier is expected after comma".to_string(),
-                                    line: current_token.source_loc.line,
-                                    source_line: &source_lines
-                                        [current_token.source_loc.line as usize - 1],
-                                    column: current_token.source_loc.column,
+                                    line: source_loc.line,
+                                    source_line: &source_lines[source_loc.line as usize - 1],
+                                    column: source_loc.column,
                                     help: None,
                                 }),
                             });
@@ -196,18 +177,20 @@ impl SyntacticParser {
                     return Ok(mem::take(&mut self.statements));
                 }
                 TokenType::Whitespace => {
-                    if state == DFAState::ExpectDirective {
-                        return Err(SyntacticError::UnexpectedToken {
-                            message: render_error(Diagnostic {
-                                headline: "Unexpected token".to_string(),
-                                line: current_token.source_loc.line,
-                                source_line: &source_lines
-                                    [current_token.source_loc.line as usize - 1],
-                                column: current_token.source_loc.column,
-                                help: Some("A directive name is expected after '.'"),
-                            }),
-                        });
-                    }
+                    match state {
+                        DFAState::ExpectDirective => {
+                            return Err(SyntacticError::UnexpectedToken {
+                                message: render_error(Diagnostic {
+                                    headline: "Unexpected token".to_string(),
+                                    line: source_loc.line,
+                                    source_line: &source_lines[source_loc.line as usize - 1],
+                                    column: source_loc.column,
+                                    help: Some("A directive name is expected after '.'"),
+                                }),
+                            });
+                        }
+                        _ => {}
+                    };
                     tokens.next();
                 }
             }

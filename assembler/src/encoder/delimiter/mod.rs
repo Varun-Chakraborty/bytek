@@ -7,8 +7,7 @@ pub struct Delimiter {
 #[derive(Debug, Default)]
 pub struct DelimiterTable {
     table: Vec<Delimiter>,
-    current: Option<Delimiter>,
-    current_address: usize,
+    current: Option<usize>,
 }
 
 impl DelimiterTable {
@@ -16,7 +15,6 @@ impl DelimiterTable {
         Self {
             table: Vec::new(),
             current: None,
-            current_address: 0,
         }
     }
 
@@ -29,13 +27,18 @@ impl DelimiterTable {
     }
 
     pub fn next(&mut self) {
-        if let Some(_) = self.current {
-            self.current_address += 1;
+        if let Some(c) = self.current {
+            self.current = Some(c + 1);
+        } else {
+            self.current = Some(0);
         }
-        self.current = self.table.get(self.current_address).cloned();
     }
 
-    pub fn get_current(&self) -> Option<Delimiter> {
-        self.current.clone()
+    pub fn get_current(&self) -> Option<&Delimiter> {
+        if let Some(c) = self.current {
+            self.table.get(c)
+        } else {
+            None
+        }
     }
 }

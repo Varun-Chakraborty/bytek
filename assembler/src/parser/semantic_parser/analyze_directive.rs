@@ -1,3 +1,5 @@
+use isa::WORD_SIZE;
+
 use super::super::super::render_error::{Diagnostic, render_error};
 use super::super::instruction::{RawBinary, Statement};
 use super::{SemanticError, SemanticParser};
@@ -20,8 +22,7 @@ impl SemanticParser {
                                         .to_string(),
                                     line: directive.loc.line,
                                     column: directive.loc.column,
-                                    source_line: &source_lines[directive.loc.line as usize - 1]
-                                        .clone(),
+                                    source_line: &source_lines[directive.loc.line as usize - 1],
                                     help: None,
                                 }),
                             });
@@ -35,15 +36,17 @@ impl SemanticParser {
                                     .to_string(),
                                 line: directive.loc.line,
                                 column: directive.loc.column,
-                                source_line: &source_lines[directive.loc.line as usize - 1].clone(),
+                                source_line: &source_lines[directive.loc.line as usize - 1],
                                 help: None,
                             }),
                         });
                     }
                 };
 
-                if !self.regexes.constant.is_match(&data.value) {
-                    return Err(SemanticError::ShapeDoesNotMatch {
+                let value = data
+                    .value
+                    .parse()
+                    .map_err(|_| SemanticError::ShapeDoesNotMatch {
                         message: render_error(Diagnostic {
                             headline: format!(
                                 "Token '{}' does not look like a constant",
@@ -53,21 +56,29 @@ impl SemanticParser {
                             column: data.loc.column,
                             source_line: &source_lines[data.loc.line as usize - 1],
                             help: Some(
-                                format!(
-                                    "Constant operand must match the regex: {}",
-                                    self.regexes.constant.as_str()
-                                )
-                                .as_str(),
+                                format!("Constant operand must be parseable as an integer")
+                                    .as_str(),
+                            ),
+                        }),
+                    })?;
+
+                if value >= 1 << WORD_SIZE {
+                    return Err(SemanticError::ShapeDoesNotMatch {
+                        message: render_error(Diagnostic {
+                            headline: format!("Token '{}' is too large", data.value),
+                            line: data.loc.line,
+                            column: data.loc.column,
+                            source_line: &source_lines[data.loc.line as usize - 1],
+                            help: Some(
+                                format!("Constant operand must be less than {}", 1 << WORD_SIZE)
+                                    .as_str(),
                             ),
                         }),
                     });
-                }
+                };
 
                 RawBinary {
-                    value: data
-                        .value
-                        .parse()
-                        .map_err(|_| SemanticError::ParseInt(data.value.clone()))?,
+                    value: value,
                     bit_count: 8,
                 }
             }
@@ -79,7 +90,7 @@ impl SemanticParser {
                                 headline: "Directive .align must have no operands".to_string(),
                                 line: directive.loc.line,
                                 column: directive.loc.column,
-                                source_line: &source_lines[directive.loc.line as usize - 1].clone(),
+                                source_line: &source_lines[directive.loc.line as usize - 1],
                                 help: None,
                             }),
                         });

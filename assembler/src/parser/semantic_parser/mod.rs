@@ -37,7 +37,6 @@ pub enum SemanticError {
 pub struct Regexes {
     register: Lazy<Regex>,
     label: Lazy<Regex>,
-    constant: Lazy<Regex>,
 }
 
 pub struct TiiEntry {
@@ -66,7 +65,6 @@ impl SemanticParser {
             regexes: Regexes {
                 register: Lazy::new(|| Regex::new(&format!(r"^R[0-{}]$", REG_COUNT - 1)).unwrap()),
                 label: Lazy::new(|| Regex::new(r"^[A-Za-z][A-Za-z0-9_]*$").unwrap()),
-                constant: Lazy::new(|| Regex::new(r"^[-+]?[0-9]+$").unwrap()),
             },
         }
     }

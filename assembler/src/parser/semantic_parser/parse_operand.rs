@@ -40,8 +40,10 @@ impl SemanticParser {
                 Ok(InstructionField { value, bit_count })
             }
             OperandType::Constant => {
-                if !self.regexes.constant.is_match(&token.value) {
-                    return Err(SemanticError::ShapeDoesNotMatch {
+                let value = token
+                    .value
+                    .parse()
+                    .map_err(|_| SemanticError::ShapeDoesNotMatch {
                         message: render_error(Diagnostic {
                             headline: format!(
                                 "Token '{}' does not look like a constant",
@@ -51,20 +53,26 @@ impl SemanticParser {
                             column: token.loc.column,
                             source_line: &source_lines[token.loc.line as usize - 1],
                             help: Some(
-                                format!(
-                                    "Constant operand must match the regex: {}",
-                                    self.regexes.constant.as_str()
-                                )
-                                .as_str(),
+                                format!("Constant operand must be parseable as an integer")
+                                    .as_str(),
                             ),
+                        }),
+                    })?;
+
+                if value >= 1 << spec.bit_count {
+                    return Err(SemanticError::ShapeDoesNotMatch {
+                        message: render_error(Diagnostic {
+                            headline: format!(
+                                "Value '{}' does not fit into {} bits",
+                                token.value, spec.bit_count
+                            ),
+                            line: token.loc.line,
+                            column: token.loc.column,
+                            source_line: &source_lines[token.loc.line as usize - 1],
+                            help: None,
                         }),
                     });
                 }
-                let value = token
-                    .value
-                    .parse::<i8>()
-                    .map_err(|_| SemanticError::NotI8(token.value))?
-                    as u8 as u32;
                 let bit_count = spec.bit_count;
                 Ok(InstructionField { value, bit_count })
             }
