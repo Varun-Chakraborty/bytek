@@ -1,5 +1,5 @@
 [workspace]
-members = ["vm", "assembler", "isa", "logger", "args", "wasm-wrapper"]
+members = ["vm", "assembler", "isa", "logger", "args"]
 resolver = "3"
 
 [workspace.dependencies]
