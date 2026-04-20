@@ -1,0 +1,66 @@
+# vm
+
+`vm` executes Bytek bytecode.
+
+The VM uses the shared [`isa`](../isa/README.md) crate to decode instructions, then applies each instruction to registers and memory.
+
+## Usage
+
+From the workspace root:
+
+```bash
+cargo run -p vm
+```
+
+The current binary entrypoint loads `kernel.bin` from the current working directory. To assemble a program into that path:
+
+```bash
+cargo run -p assembler programs/index.asm --out=kernel.bin
+```
+
+Then run:
+
+```bash
+cargo run -p vm
+```
+
+## Runtime Model
+
+`MyVM` owns:
+
+- `registers`: general registers, flags, program counter, and execution metadata.
+- `memory`: byte-addressed VM memory.
+- `opt_spec`: the opcode table from `isa`.
+- `logger`: debug logging support.
+
+Execution follows the usual fetch-decode-execute loop:
+
+1. Read an instruction from memory at the program counter.
+2. Decode the opcode and operands through `isa::OptSpec`.
+3. Dispatch to the matching handler.
+4. Update registers, flags, memory, and the program counter.
+5. Stop when the program counter reaches EOF.
+
+## Public API
+
+- `MyVM::new()` creates a VM with empty memory and registers.
+- `load_kernel()` loads `kernel.bin` and runs it.
+- `start()` currently calls `load_kernel()`.
+- `step()` executes a single instruction and returns an `ExecutionStep`.
+- `run()` executes until the loaded program halts or reaches EOF.
+- `reset()` clears registers and memory.
+- `get_state()` returns a borrowed snapshot of registers and memory.
+
+## Implemented Instructions
+
+The VM currently dispatches:
+
+- Halt and I/O: `HALT`, `IN`, `OUT`, `OUT_16`, `OUT_CHAR`
+- Movement: `MOVER`, `MOVEM`, `MOVEI`
+- Arithmetic: `ADD`, `SUB`, `MULT`, `ADDI`, `SUBI`, `MULTI`
+- Carry arithmetic: `ADC`, `SBC`, `ADCI`, `SBCI`
+- 16-bit multiply helpers: `MULT_16`, `MULTI_16`
+- Control flow: `JMP`, `JZ`, `JNZ`, `CALL`, `RET`
+- Stack: `PUSH`, `POP`
+
+Instructions present in `isa` should only be considered executable once they have a matching VM handler.

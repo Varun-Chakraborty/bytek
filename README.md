@@ -1,470 +1,85 @@
-# Compiler - Rust Version
+# Bytek
 ![Rust](https://img.shields.io/badge/Rust-1.89.0-orange)
 ![MIT](https://img.shields.io/badge/License-MIT-green)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Varun-Chakraborty/compiler)
 [![Release](https://github.com/Varun-Chakraborty/compiler/actions/workflows/release.yml/badge.svg)](https://github.com/Varun-Chakraborty/compiler/actions/workflows/release.yml)
 
-> **Compiler** is a **from-scratch VM simulator** paired with a **simple assembler** that can translate custom assembly language into binary code.
+Bytek is a Rust workspace for learning low-level systems ideas by building a small instruction set, an assembler, and a virtual machine from scratch.
 
-### Archived Java Version
-This project was originally started as a Java implementation to learn the basics of VM simulation and assembly.  
-That version has now been **archived** and preserved in the [`java-archive`](https://github.com/Varun-Chakraborty/compiler/tree/java-archive) tag.  
-The active development is now focused on the Rust port, due to its closer alignment with systems programming concepts.
+The repository started as a Java VM simulator and assembler. That version is archived in the [`java-archive`](https://github.com/Varun-Chakraborty/compiler/tree/java-archive) tag; active development now happens in Rust.
 
-**Note:** You’ll need Rust installed to run these Rust-based tools.
+## Workspace
 
-## Overview
-- The VM executes basic instructions like data movement, arithmetic, conditional jumps, input/output, and halting.  
-- The assembler converts human-readable assembly into a `.bin` file, which the VM can then run.
+The root README stays intentionally high level. Crate-specific behavior, command usage, and implementation notes live beside each crate:
 
-This project is being built to learn **system software** and understand **how VMs work** at a low level.
-
----
-
-## Table of Contents
-- [Quick Start](#quick-start)
-  - [Installation](#installation)
-  - [From Source](#from-source)
-- [Components](#components)
-  - [ISA](#isa)
-  - [VM](#vm)
-  - [Assembler](#assembler)
-- [How It Works](#how-it-works)
-- [Examples](#examples)
-- [Verification](#verification)
-- [Current Limitations](#current-limitations)
-- [Future Improvements](#future-improvements)
-- [Motivation](#motivation)
+| Crate | Path | Purpose |
+| --- | --- | --- |
+| `isa` | [`core/isa`](./core/isa/README.md) | Shared instruction set, operand specs, and machine constants. |
+| `assembler` | [`core/assembler`](./core/assembler/README.md) | Converts `.asm` source into bytecode for the VM. |
+| `vm` | [`core/vm`](./core/vm/README.md) | Executes bytecode using the shared ISA. |
+| `args` | [`infra/args`](./infra/args/README.md) | Shared command-line flag parser. |
+| `logger` | [`infra/logger`](./infra/logger/README.md) | Lightweight console/file logging helper. |
 
 ## Quick Start
-You have two options to run the tool:
 
-### Installation
-You can download the latest pre-compiled executables for Windows, macOS, and Linux from the [Latest Release](https://github.com/Varun-Chakraborty/compiler/releases/latest) page.
+Install Rust, then build the full workspace:
 
-Just download the .zip archive for your operating system, unzip the file, and you're ready to go!
-
-### From Source
-Example assembly codes are present in the repository in the [`examples`](./examples) folder.
-
-1. Clone the repository: 
-    ```
-    git clone https://github.com/Varun-Chakraborty/compiler
-    ```
-2. Navigate to the project directory:
-    ```
-    cd compiler
-    ```
-3. Here you can **optionally** build the project in release mode if you want to run the binaries or can just use cargo run as described in point 4.
-    ```
-    cargo build --workspace --release --verbose
-    ```
-4. Run the assembler:
-    
-    Using binary:
-    ```
-    ./target/release/assembler examples/fact.asm --bin
-    ```
-    Using cargo run:
-    ```
-    cargo run -p assembler examples/fact.asm
-    ```
-5. Run the VM:
-    
-    Using binary:
-    ```
-    ./target/release/vm output.bin
-    ```
-    Using cargo run:
-    ```
-    cargo run -p vm output.bin
-    ```
-
-## Components
-### ISA
-Symbol table mapping for opcodes:
-    <table>
-        <tr>
-            <th>Opcode</th>
-            <th>Mnemonic</th>
-            <th>Expected Count of Arguments</th>
-            <th>Description</th>
-        </tr>
-        <tr>
-            <td>0</td>
-            <td>HALT</td>
-            <td>0</td>
-            <td>Halts the VM.</td>
-        </tr>
-        <tr>
-            <td>1</td>
-            <td>MOVER</td>
-            <td>2 (R, M)</td>
-            <td>Moves data from memory to a register.</td>
-        </tr>
-        <tr>
-            <td>2</td>
-            <td>MOVERI</td>
-            <td>2 (R, V)</td>
-            <td>Moves a constant (immediate value) to a register.</td>
-        </tr>
-        <tr>
-            <td>3</td>
-            <td>MOVEM</td>
-            <td>2 (R, M)</td>
-            <td>Moves data from a register to memory.</td>
-        </tr>
-        <tr>
-            <td>4</td>
-            <td>MOVEMI</td>
-            <td>2 (M, V)</td>
-            <td>Moves a constant (immediate value) to memory.</td>
-        </tr>
-        <tr>
-            <td>5</td>
-            <td>IN</td>
-            <td>1 (R)</td>
-            <td>Reads data from the user.</td>
-        </tr>
-        <tr>
-            <td>6</td>
-            <td>OUT</td>
-            <td>1 (R)</td>
-            <td>Writes data to the user.</td>
-        </tr>
-        <tr>
-            <td>7</td>
-            <td>ADD</td>
-            <td>3 (R, R, M)</td>
-            <td>Adds register and memory and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>8</td>
-            <td>ADDI</td>
-            <td>3 (R, R, V)</td>
-            <td>Adds a register and a constant (immediate value) and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>10</td>
-            <td>SUB</td>
-            <td>3 (R, R, M)</td>
-            <td>Subtracts memory from a register and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>11</td>
-            <td>SUBI</td>
-            <td>3 (R, R, V)</td>
-            <td>Subtracts a constant (immediate value) from a register and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>12</td>
-            <td>MULT</td>
-            <td>3 (R, R, M)</td>
-            <td>Multiples register and memory and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>13</td>
-            <td>MULTI</td>
-            <td>3 (R, R, V)</td>
-            <td>Multiples a register and a constant (immediate value) and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>14</td>
-            <td>DIV</td>
-            <td>3 (R, R, M)</td>
-            <td>Divides memory from a register and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>15</td>
-            <td>DIVI</td>
-            <td>3 (R, R, V)</td>
-            <td>Divides a constant (immediate value) from a register and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>16</td>
-            <td>MOD</td>
-            <td>3 (R, R, M)</td>
-            <td>Divides memory from a register and stores the remainder in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>17</td>
-            <td>MODI</td>
-            <td>3 (R, R, V)</td>
-            <td>Divides a constant (immediate value) from a register and stores the remainder in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>18</td>
-            <td>JMP</td>
-            <td>1 (M)</td>
-            <td>Jump to a memory address.</td>
-        </tr>
-        <tr>
-            <td>19</td>
-            <td>JZ</td>
-            <td>1 (M)</td>
-            <td>Jump to a memory address if the zero flag is set.</td>
-        </tr>
-        <tr>
-            <td>20</td>
-            <td>JNZ</td>
-            <td>1 (M)</td>
-            <td>Jump to a memory address if the zero flag is not set.</td>
-        </tr>
-        <tr>
-            <td>21</td>
-            <td>AND</td>
-            <td>3 (R, R, M)</td>
-            <td>ANDs register and memory and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>22</td>
-            <td>OR</td>
-            <td>3 (R, R, M)</td>
-            <td>ORs register and memory and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>23</td>
-            <td>XOR</td>
-            <td>3 (R, R, M)</td>
-            <td>XORs register and memory and stores the result in a register specified in the first operand.</td>
-        </tr>
-        <tr>
-            <td>24</td>
-            <td>NOT</td>
-            <td>1 (R)</td>
-            <td>NOTs a register and stores the result in the same register.</td>
-        </tr>
-        <tr>
-            <td>25</td>
-            <td>SHL</td>
-            <td>1 (R)</td>
-            <td>Shifts a register left by 1 bit and stores the result in the same register.</td>
-        </tr>
-        <tr>
-            <td>26</td>
-            <td>SHR</td>
-            <td>1 (R)</td>
-            <td>Shifts a register right by 1 bit and stores the result in the same register.</td>
-        </tr>
-        <tr>
-            <td>27</td>
-            <td>ROL</td>
-            <td>1 (R)</td>
-            <td>Rotates a register left by 1 bit and stores the result in the same register.</td>
-        </tr>
-        <tr>
-            <td>28</td>
-            <td>ROR</td>
-            <td>1 (R)</td>
-            <td>Rotates a register right by 1 bit and stores the result in the same register.</td>
-        </tr>
-        <tr>
-            <td>29</td>
-            <td>CMP</td>
-            <td>2 (R, R)</td>
-            <td>Compares two registers and sets flags.</td>
-        </tr>
-        <tr>
-            <td>30</td>
-            <td>CMPI</td>
-            <td>2 (R, V)</td>
-            <td>Compares a register with a constant (immediate value) and sets flags.</td>
-        </tr>
-        <tr>
-            <td>31</td>
-            <td>PUSH</td>
-            <td>1 (R)</td>
-            <td>Pushes a register onto the stack.</td>
-        </tr>
-        <tr>
-            <td>32</td>
-            <td>POP</td>
-            <td>1 (R)</td>
-            <td>Pops a register from the stack.</td>
-        </tr>
-        <tr>
-            <td>33</td>
-            <td>CALL</td>
-            <td>1 (M)</td>
-            <td>Pushes the program counter onto the stack and jumps to a memory address.</td>
-        </tr>
-        <tr>
-            <td>34</td>
-            <td>RET</td>
-            <td>0</td>
-            <td>Pops the program counter from the stack and jumps to it.</td>
-        </tr>
-    </table>
-
-- **NOTE:** Some instructions that accept 3 operands can also be written with 2. The assembler automatically expands them.
-
-**Operands**
-- R: Register
-- M: Memory Address [Data Memory or Program Memory (as per the context)]
-- V: Constant
-
-For more details, refer to the [isa crate](./isa/src/lib.rs)
-
-### VM
-- Executes a custom instruction set.
-- Supports various opcodes as defined in [the ISA](#isa).
-- Keeps track of:
-    - **Registers** (R0, R1, R2, R3)
-    - **Data memory**
-    - **Program memory**
-    - **Program counter (PC)**
-
-- Supports several flags:
-    - **Basic Instruction**: Minimal arguments mandatorily required.
-        ```
-        cargo run -p vm output.bin
-        ```
-    - **Debug mode**: Prints detailed execution steps.
-        ```
-        cargo run -p vm output.bin --debug
-        ```
-    - **Log**: Writes execution log to a file/console.
-        ```
-        cargo run -p vm output.bin --log=file
-        ```
-
-### Assembler
-(One pass assembler)
-- Converts `.asm` source files into binary.
-- Basic Instruction format:  
-    `[label:] <4-bit opcode> [<2-bit register> <4-bit operand> [<4-bit operand3>] [<8-bit program memory address (in case of labels)>]]`
-
-    - Here, [] are optional and <> are required parts of the instruction.
-- Uses Symbol Table to resolve labels.
-- Uses Table of Incomplete Instructions to resolve forward references.
-
-- Operand format:
-    - **Opcode**: 4 bits (0-15)
-    - **Register**: 2 bits (R0 = 00, R1 = 01, R2 = 10, R3 = 11)
-    - **Data Memory Address**: 4 bits (0-15)
-    - **Program Memory Address**: 8 bits (0-255)
-
-- Supports several flags:
-    - **Basic Instruction**: Minimal arguments mandatorily required.
-        ```
-        cargo run -p assembler examples/fact.asm
-        ```
-    - **Debug mode**: Outputs detailed assembly-to-binary conversion steps and creates a debug.txt file containing ASCII representation of the binary.
-        ```
-        cargo run -p assembler examples/fact.asm --debug
-        ```
-    - **Pretty Debug mode**: ASCII representation of the binary in debug.txt is prettified.
-        ```
-        cargo run -p assembler examples/fact.asm --debug --pretty
-        ```
-        **NOTE:** pretty flag should be accompanied by debug flag else it will be ignored.
-    - **Log**: Writes assembly log to a file/console.
-        ```
-        cargo run -p assembler examples/fact.asm --log=file
-        ```
----
-
-## How It Works
-<img width="560" height="200" alt="c81c3311-c1da-4d1e-92e3-f5261516a11b" src="https://github.com/user-attachments/assets/b2ff68ea-197e-4c1d-90fc-007955a14c71" />
-
-1. **Write Assembly**
-
-    Example: `ADD R0, R1, 0`
-    - This means: add the value at memory location `0` with value at register `R1` and store the result in register `R0`.
-
-    An example assembly code and is present in this repository as [`index.asm`](./index.asm).
-
-2. **Assemble**
-
-    Run the assembler to convert your `.asm` file into a `.bin` file:
-    ```bash
-    cargo run -p assembler examples/fact.asm
-    ```
-    This produces raw binary in output.bin.
-    
-    Note:
-    1. The assembler also generates a `.txt` file with ASCII `0` and `1` bits if run in debug mode.
-        ```bash
-        cargo run -p assembler examples/fact.asm --debug --pretty
-        ```
-        This produces a human-readable binary alongside the raw binary in debug.txt.
-    2. A python script is present in the root of the repository to verify if the raw binary matches the ASCII representation (generated in debug mode).
-        You can run it as:
-        ```bash
-        python3 convertBinToASCIIBin.py output.bin
-        ```
-        This will print the ASCII representation of the binary in the console.
-
-3. **Run on VM**
-
-    Pass output.bin to the VM simulator:
-    ```
-    cargo run -p vm output.bin
-    ```
-    The VM will:
-    - Load the program into instruction memory.
-    - Fetch, decode, and execute each instruction.
-    - Print output as per the instructions, asking for input or displaying the value of a register.
-## Example
-**program.asm**
-```
-      IN R0               ; Input the number
-      MOVEM R0, 1         ; Move input to memory location 1
-      MOVER R1, 1         ; Move input value at memory location 1 to R1
-      DC 1, 1             ; Constants; declare a constant of value 1 at memory location 1
-      MOVER R0, 1         ; Move value at memory location 1 i.e. 1 to R0
-LOOP: MOVEM, R1, 0        ; Support of labels; Move input to memory location 0
-      MULT R0, 0          ; Multiply value at R0 (default 1 for the first iteration) with input
-      SUB R1, 1           ; Subtract 1 (at memory location 1) from input
-      JNZ LOOP            ; Jump to loop if input is not 0
-      OUT R0              ; Output the result
-      HALT                ; END of program
-```
-As you might have guessed, the above program calculates the factorial of the input number.
-
-**Output (Normal Mode)**
-```
-Loading binary file: output.bin
-Binary file loaded successfully.
-Starting execution...
-Enter value for register 0: 5
-Output from register 0: 120
-End of Execution.
-```
-
-You can use the `--debug` flag as defined in the [VM section](#vm) to run the VM in `debug mode`
-
----
-
-## Verification
-The python script [`convertBinToASCIIBin.py`](./convertBinToASCIIBin.py) can be used to verify the binary output by converting it to ASCII `0` and `1` bits.
-Run it as follows:
 ```bash
-python3 convertBinToASCIIBin.py output.bin
+cargo build --workspace
 ```
-This will print the ASCII representation of the binary to the console, which can be compared with the expected output.
 
-_This step is optional and mainly for debugging or cross-checking the assembler’s output._
+Assemble a program:
 
-## Current Limitations
-- Input/Output is basic (manual IN and OUT instructions).
+```bash
+cargo run -p assembler programs/index.asm --debug --pretty --out=kernel.bin
+```
 
----
-## Future Improvements
-- Create a REPL for live assembly and execution.
-- Support for more registers and larger memory space.
-- Support for floating point operations and more instructions.
+Run the VM from the repository root:
 
----
+```bash
+cargo run -p vm
+```
+
+The VM currently loads `kernel.bin` from the current working directory.
+
+## Repository Layout
+
+- [`core`](./core): core system crates.
+- [`infra`](./infra): shared support crates used by command-line tools.
+- [`programs`](./programs): sample assembly programs.
+- [`scripts`](./scripts): helper scripts.
+
+## How The Pieces Fit
+
+1. Assembly source in [`programs`](./programs) is passed to the `assembler`.
+2. The `assembler` uses the shared `isa` crate to validate operation names and operands.
+3. The `assembler` writes bytecode, normally as `output.bin` or a path passed with `--out=...`.
+4. The `vm` loads `kernel.bin`, decodes bytes using the same `isa` crate, and executes instructions step by step.
+
+## Development
+
+Run all workspace tests:
+
+```bash
+cargo test --workspace
+```
+
+Build release binaries:
+
+```bash
+cargo build --workspace --release
+```
+
 ## Motivation
+
 "Feels good to write 0s and 1s and see them do something."
 
-This project is a practical step toward learning system software by building a VM from scratch, understanding the fetch-decode-execute cycle, and bridging theory with a working implementation.
+This project is a practical step toward understanding system software, the fetch-decode-execute cycle, and the bridge between source text and machine behavior.
 
----
 ## License
+
 The project is released under the [MIT License](./LICENSE).
 
----
 ## Contributing
-Contributions are welcome! Please fork the repository and create a pull request.
+
+Contributions are welcome. Fork the repository and open a pull request.
