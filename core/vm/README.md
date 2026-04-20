@@ -29,9 +29,35 @@ cargo run -p vm
 `MyVM` owns:
 
 - `registers`: general registers, flags, program counter, and execution metadata.
-- `memory`: byte-addressed VM memory.
+- `memory`: 256 cells of 8-bit VM memory.
 - `opt_spec`: the opcode table from `isa`.
 - `logger`: debug logging support.
+
+## Machine Architecture
+
+The VM is an 8-bit machine with a compact bit-level instruction encoding.
+
+| Part | Shape | Notes |
+| --- | --- | --- |
+| Word size | 8 bits | Registers and memory cells store `u8` values. Some operations interpret those bytes as signed `i8` values. |
+| General registers | `R0` through `R2` | The register index is encoded in 2 bits, while the current machine exposes 3 registers. |
+| Memory | 256 cells | Data memory is addressed by 8-bit operands, so data addresses range from `0` to `255`. |
+| Program counter | Bit address | `pc` points to the next bit to decode, not just the next byte. |
+| EOF | Bit address | Loaded programs carry their effective bit length, and execution stops when `pc` reaches `eof`. |
+| Stack pointer | Memory cell address | `sp` starts at the top of memory and grows downward for `PUSH`, `POP`, `CALL`, and `RET`. |
+| Flags | `zero`, `sign`, `overflow`, `carry` | Arithmetic and movement instructions update condition flags used by conditional jumps. |
+
+Instruction decoding is driven by the shared `isa` crate:
+
+- Every instruction starts with a 6-bit opcode.
+- Register operands are 2 bits.
+- Data-memory operands are 8 bits.
+- Code-address operands are 10 bits because they target bit positions in program memory.
+- Immediate operands are 8 bits.
+
+The VM stores program bytes in the same memory structure it uses for data. `Instruction::new` reads bits from memory starting at `pc`, consumes the opcode and operands according to the ISA table, and advances `pc` as it decodes. Jump and call instructions then overwrite `pc` with a code-address operand.
+
+Assembled binaries end with a 4-byte big-endian EOF marker. `load_kernel()` strips those final 4 bytes, stores the decoded bit length in `registers.eof`, loads the remaining bytes into memory, resets `pc` to `0`, and starts execution.
 
 Execution follows the usual fetch-decode-execute loop:
 
