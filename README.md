@@ -4,7 +4,7 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Varun-Chakraborty/compiler)
 [![Release](https://github.com/Varun-Chakraborty/compiler/actions/workflows/release.yml/badge.svg)](https://github.com/Varun-Chakraborty/compiler/actions/workflows/release.yml)
 
-Bytek is a Rust workspace for learning low-level systems ideas by building a small instruction set, an assembler, and a virtual machine from scratch.
+Bytek is a Rust workspace for experimenting with a small custom instruction set, an assembler, a virtual machine, and the early pieces of a higher-level compiler frontend.
 
 The repository started as a Java VM simulator and assembler. That version is archived in the [`java-archive`](https://github.com/Varun-Chakraborty/compiler/tree/java-archive) tag; active development now happens in Rust.
 
@@ -17,6 +17,7 @@ The root README stays intentionally high level. Crate-specific behavior, command
 | `isa` | [`core/isa`](./core/isa/README.md) | Shared instruction set, operand specs, and machine constants. |
 | `assembler` | [`core/assembler`](./core/assembler/README.md) | Converts `.asm` source into bytecode for the VM. |
 | `vm` | [`core/vm`](./core/vm/README.md) | Executes bytecode using the shared ISA. |
+| `compiler` | [`core/compiler`](./core/compiler/README.md) | Early compiler frontend crate with a scaffold lexer and compile entrypoint. |
 | `args` | [`infra/args`](./infra/args/README.md) | Shared command-line flag parser. |
 | `logger` | [`infra/logger`](./infra/logger/README.md) | Lightweight console/file logging helper. |
 
@@ -40,7 +41,7 @@ Run the VM from the repository root:
 cargo run -p vm
 ```
 
-The VM currently loads `kernel.bin` from the current working directory.
+The VM currently loads `kernel.bin` from the current working directory and has no separate CLI flags yet.
 
 ## Repository Layout
 
@@ -55,6 +56,7 @@ The VM currently loads `kernel.bin` from the current working directory.
 2. The `assembler` uses the shared `isa` crate to validate operation names and operands.
 3. The `assembler` writes bytecode, normally as `output.bin` or a path passed with `--out=...`.
 4. The `vm` loads `kernel.bin`, decodes bytes using the same `isa` crate, and executes instructions step by step.
+5. The `compiler` crate is currently a library-only work area. Its `compile()` path only lexes input and prints the token stream scaffold, but that crate is where higher-level language work is headed.
 
 ## Development
 

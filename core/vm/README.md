@@ -43,6 +43,7 @@ The VM is an 8-bit machine with a compact bit-level instruction encoding.
 | General registers | `R0` through `R2` | The register index is encoded in 2 bits, while the current machine exposes 3 registers. |
 | Memory | 256 cells | Data memory is addressed by 8-bit operands, so data addresses range from `0` to `255`. |
 | Program counter | Bit address | `pc` points to the next bit to decode, not just the next byte. |
+| Addressing-mode tag | 3 bits | Every encoded operand starts with a 3-bit addressing-mode field. |
 | EOF | Bit address | Loaded programs carry their effective bit length, and execution stops when `pc` reaches `eof`. |
 | Stack pointer | Memory cell address | `sp` starts at the top of memory and grows downward for `PUSH`, `POP`, `CALL`, and `RET`. |
 | Flags | `zero`, `sign`, `overflow`, `carry` | Arithmetic and movement instructions update condition flags used by conditional jumps. |
@@ -50,9 +51,10 @@ The VM is an 8-bit machine with a compact bit-level instruction encoding.
 Instruction decoding is driven by the shared `isa` crate:
 
 - Every instruction starts with a 6-bit opcode.
+- Non-empty operands begin with a 3-bit addressing-mode tag.
 - Register operands are 2 bits.
 - Data-memory operands are 8 bits.
-- Code-address operands are 10 bits because they target bit positions in program memory.
+- Code-address operands are 11 bits because they target bit positions in the 256-byte program-memory space.
 - Immediate operands are 8 bits.
 
 The VM stores program bytes in the same memory structure it uses for data. `Instruction::new` reads bits from memory starting at `pc`, consumes the opcode and operands according to the ISA table, and advances `pc` as it decodes. Jump and call instructions then overwrite `pc` with a code-address operand.
@@ -82,10 +84,10 @@ Execution follows the usual fetch-decode-execute loop:
 The VM currently dispatches:
 
 - Halt and I/O: `HALT`, `IN`, `OUT`, `OUT_16`, `OUT_CHAR`
-- Movement: `MOVER`, `MOVEM`, `MOVEI`
-- Arithmetic: `ADD`, `SUB`, `MULT`, `ADDI`, `SUBI`, `MULTI`
-- Carry arithmetic: `ADC`, `SBC`, `ADCI`, `SBCI`
-- 16-bit multiply helpers: `MULT_16`, `MULTI_16`
+- Movement: `MOVER`, `MOVEM`
+- Arithmetic: `ADD`, `SUB`, `MULT`
+- Carry arithmetic: `ADC`, `SBC`
+- 16-bit multiply helper: `MULT_16`
 - Control flow: `JMP`, `JZ`, `JNZ`, `CALL`, `RET`
 - Stack: `PUSH`, `POP`
 

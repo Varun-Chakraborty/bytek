@@ -1,5 +1,5 @@
 [workspace]
-members = ["core/vm", "core/assembler", "core/isa", "infra/logger", "infra/args"]
+members = ["core/vm", "core/assembler", "core/isa", "core/compiler", "infra/logger", "infra/args"]
 resolver = "3"
 
 [workspace.dependencies]

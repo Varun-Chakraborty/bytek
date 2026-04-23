@@ -22,4 +22,9 @@ let args = args::Args::parse()?;
 
 `Args::parse()` reads `std::env::args()` and returns an `ArgsError::InvalidFlag` only for parser-level flag errors.
 
-Each binary is responsible for deciding which parsed fields it supports.
+Notes about the current implementation:
+
+- When no CLI arguments are provided, parsing succeeds and returns default values.
+- `input_filepath` is simply `args[1]`, so binaries should still validate the positional argument they expect.
+- Flags are detected with string matching rather than a declarative CLI framework.
+- Each binary is responsible for deciding which parsed fields it supports.
