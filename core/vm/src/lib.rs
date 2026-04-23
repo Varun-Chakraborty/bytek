@@ -100,18 +100,10 @@ impl MyVM {
             "sub" => Ok(self.sub(&instr)?),
             "mult" => Ok(self.mult(&instr)?),
 
-            "addi" => Ok(self.add(&instr)?),
-            "subi" => Ok(self.sub(&instr)?),
-            "multi" => Ok(self.mult(&instr)?),
-
             "adc" => Ok(self.adc(&instr)?),
             "sbc" => Ok(self.sbc(&instr)?),
 
-            "adci" => Ok(self.adc(&instr)?),
-            "sbci" => Ok(self.sbc(&instr)?),
-
             "mult_16" => Ok(self.mult_16(&instr)?),
-            "multi_16" => Ok(self.mult_16(&instr)?),
 
             "jmp" => Ok(self.jmp(&instr)?),
             "jz" => Ok(self.jz(&instr)?),

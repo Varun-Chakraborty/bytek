@@ -85,8 +85,17 @@ impl OptSpec {
         static MEM_C: OperandSpec = OperandSpec {
             allowed_modes: &[AddressingMode::DirectCode],
         };
+        static NON_REGISTER_VALUE: OperandSpec = OperandSpec {
+            allowed_modes: &[
+                AddressingMode::DirectData,
+                AddressingMode::Indirect,
+                AddressingMode::IndirectRegister,
+                AddressingMode::Immediate,
+            ],
+        };
         static VALUE: OperandSpec = OperandSpec {
             allowed_modes: &[
+                AddressingMode::Register,
                 AddressingMode::DirectData,
                 AddressingMode::Indirect,
                 AddressingMode::IndirectRegister,
@@ -102,34 +111,14 @@ impl OptSpec {
                 Operation::new("OUT", vec![&REG]),
                 Operation::new("OUT_16", vec![]),
                 Operation::new("OUT_CHAR", vec![&REG]),
-                Operation::new("MOVER", vec![&REG, &VALUE]),
-                Operation::new("MOVEM", vec![&REG, &VALUE]),
-                Operation::new(
-                    "ADD",
-                    vec![
-                        &REG,
-                        &REG,
-                        &OperandSpec {
-                            allowed_modes: &[
-                                AddressingMode::Register,
-                                AddressingMode::DirectData,
-                                AddressingMode::Indirect,
-                                AddressingMode::IndirectRegister,
-                                AddressingMode::Immediate,
-                            ],
-                        },
-                    ],
-                ),
-                Operation::new("SUB", vec![&REG, &REG, &REG]),
-                Operation::new("MULT", vec![&REG, &REG, &REG]),
-                Operation::new("SUBI", vec![&REG, &REG, &VALUE]),
-                Operation::new("MULTI", vec![&REG, &REG, &VALUE]),
-                Operation::new("ADC", vec![&REG, &REG, &REG]),
-                Operation::new("SBC", vec![&REG, &REG, &REG]),
-                Operation::new("ADCI", vec![&REG, &REG, &VALUE]),
-                Operation::new("SBCI", vec![&REG, &REG, &VALUE]),
-                Operation::new("MULT_16", vec![&REG]),
-                Operation::new("MULTI_16", vec![&VALUE]),
+                Operation::new("MOVER", vec![&REG, &NON_REGISTER_VALUE]),
+                Operation::new("MOVEM", vec![&REG, &NON_REGISTER_VALUE]),
+                Operation::new("ADD", vec![&REG, &REG, &VALUE]),
+                Operation::new("SUB", vec![&REG, &REG, &VALUE]),
+                Operation::new("MULT", vec![&REG, &REG, &VALUE]),
+                Operation::new("ADC", vec![&REG, &REG, &VALUE]),
+                Operation::new("SBC", vec![&REG, &REG, &VALUE]),
+                Operation::new("MULT_16", vec![&VALUE]),
                 Operation::new("JMP", vec![&MEM_C]),
                 Operation::new("JZ", vec![&MEM_C]),
                 Operation::new("JNZ", vec![&MEM_C]),
@@ -144,7 +133,7 @@ impl OptSpec {
                 // Operation::new("SHL", vec![&REG]),
                 // Operation::new("SHR", vec![&REG]),
                 // Operation::new("CMP", vec![&REG, &REG]),
-                // Operation::new("CMPI", vec![&REG, &VALUE]),
+                // Operation::new("CMPI", vec![&REG, &NON_REGISTER_VALUE]),
                 // Operation::new("JG", vec![&MEM_C]),
                 // Operation::new("JGE", vec![&MEM_C]),
                 // Operation::new("JL", vec![&MEM_C]),

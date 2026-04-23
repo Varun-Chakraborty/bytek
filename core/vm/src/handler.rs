@@ -423,7 +423,7 @@ impl MyVM {
 
     pub fn mult_16(&mut self, instr: &Instruction) -> Result<Delta, VMError> {
         let operands = instr.get_operands();
-        let operand1 = &operands[1];
+        let operand1 = &operands[0];
         let num1 = match operand1.mode {
             AddressingMode::Immediate => operand1.value as i8 as i16,
             AddressingMode::Register => *self.registers.get_general(operand1.value)? as i8 as i16,
