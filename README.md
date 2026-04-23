@@ -1,12 +1,12 @@
 # Bytek
 ![Rust](https://img.shields.io/badge/Rust-1.89.0-orange)
 ![MIT](https://img.shields.io/badge/License-MIT-green)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/Varun-Chakraborty/compiler)
-[![Release](https://github.com/Varun-Chakraborty/compiler/actions/workflows/release.yml/badge.svg)](https://github.com/Varun-Chakraborty/compiler/actions/workflows/release.yml)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Varun-Chakraborty/bytek)
+[![Release](https://github.com/Varun-Chakraborty/bytek/actions/workflows/release.yml/badge.svg)](https://github.com/Varun-Chakraborty/bytek/actions/workflows/release.yml)
 
 Bytek is a Rust workspace for experimenting with a small custom instruction set, an assembler, a virtual machine, and the early pieces of a higher-level compiler frontend.
 
-The repository started as a Java VM simulator and assembler. That version is archived in the [`java-archive`](https://github.com/Varun-Chakraborty/compiler/tree/java-archive) tag; active development now happens in Rust.
+The repository started as a Java VM simulator and assembler. That version is archived in the [`java-archive`](https://github.com/Varun-Chakraborty/bytek/tree/java-archive) tag; active development now happens in Rust.
 
 ## Workspace
 

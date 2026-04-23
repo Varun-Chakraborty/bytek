@@ -39,7 +39,7 @@ jobs:
         uses: thedoctor0/zip-release@main
         with:
           type: 'zip'
-          filename: 'compiler-toolchain-${{ github.ref_name }}-${{ runner.os }}.zip'
+          filename: 'toolchain-${{ github.ref_name }}-${{ runner.os }}.zip'
           directory: './target/release/'
           path: |
             vm${{ runner.os == 'Windows' && '.exe' || '' }}
@@ -50,4 +50,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           # Give it the full path to where the zip file was created
-          files: './target/release/compiler-toolchain-*.zip'
+          files: './target/release/toolchain-*.zip'
