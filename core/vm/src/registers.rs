@@ -42,7 +42,7 @@ pub struct Registers<T> {
     pub sp: u32,
     pub pc: u32,
     pub eof: u32,
-    memory_size: u32,
+    pub memory_size: u32,
 }
 
 impl<T: Copy + Default + PrimInt + Debug + std::fmt::Display> Registers<T> {

@@ -1,3 +1,5 @@
+use isa::{AddressingMode, MODE_BIT_COUNT};
+
 use crate::memory::{Memory, MemoryError};
 
 #[derive(Debug, thiserror::Error)]
@@ -6,13 +8,27 @@ pub enum InstructionError {
     MemoryError(#[from] MemoryError),
     #[error("Invalid opcode: {0} at address: {1}")]
     InvalidOpcode(u32, u32),
+    #[error("Invalid addressing mode: {0} at address: {1}")]
+    InvalidAddressingMode(AddressingMode, u32),
+}
+
+#[derive(Debug)]
+pub struct Operand {
+    pub mode: AddressingMode,
+    pub value: u32,
+}
+
+impl Operand {
+    pub fn new(mode: AddressingMode) -> Self {
+        Self { mode, value: 0 }
+    }
 }
 
 #[derive(Debug)]
 pub struct Instruction {
     opcode: u32,
     operation_name: String,
-    operands: Vec<u32>,
+    operands: Vec<Operand>,
 }
 
 impl std::fmt::Display for Instruction {
@@ -53,10 +69,18 @@ impl Instruction {
 
         let operands = operation.operands.iter().fold(
             Ok(Vec::new()),
-            |acc: Result<Vec<u32>, InstructionError>, operand_spec| {
+            |acc: Result<Vec<Operand>, InstructionError>, operand_spec| {
                 let mut acc = acc?;
-                let operand = get_bits(memory, *pc, operand_spec.bit_count as u32)?;
-                *pc += operand_spec.bit_count as u32;
+                let mode = get_bits(memory, *pc, MODE_BIT_COUNT)?;
+                let mode = AddressingMode::from_bits(mode);
+                if !operand_spec.allowed_modes.contains(&mode) {
+                    return Err(InstructionError::InvalidAddressingMode(mode, *pc));
+                }
+                *pc += MODE_BIT_COUNT;
+                let bits_count = mode.bit_count();
+                let mut operand = Operand::new(mode);
+                operand.value = get_bits(memory, *pc, bits_count as u32)?;
+                *pc += bits_count as u32;
                 acc.push(operand);
                 Ok(acc)
             },
@@ -69,7 +93,7 @@ impl Instruction {
         })
     }
 
-    pub fn get_operands(&self) -> &Vec<u32> {
+    pub fn get_operands(&self) -> &Vec<Operand> {
         return &self.operands;
     }
 

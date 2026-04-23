@@ -1,46 +1,61 @@
-use std::fmt::Display;
-
 pub static REG_COUNT: u32 = 3;
-pub static MEM_SIZE: u32 = 256; // bits
+pub static MEM_BYTES: u32 = 256;
+pub static MEM_BITS: u32 = MEM_BYTES * 8;
 pub static WORD_SIZE: u32 = 8; // bits
+pub static MODE_BIT_COUNT: u32 = 3;
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum AddressType {
-    Code,
-    Data,
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Copy, Default)]
+pub enum AddressingMode {
+    #[default]
+    Register, // R0
+    DirectCode,       // 0
+    DirectData,       // 0
+    Indirect,         // [0]
+    IndirectRegister, // [R0]
+    Immediate,        // #0
 }
 
-impl Display for AddressType {
+impl std::fmt::Display for AddressingMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AddressType::Code => write!(f, "Code"),
-            AddressType::Data => write!(f, "Data"),
+            AddressingMode::Register => write!(f, "Register"),
+            AddressingMode::DirectCode => write!(f, "DirectCode"),
+            AddressingMode::DirectData => write!(f, "DirectData"),
+            AddressingMode::Indirect => write!(f, "Indirect"),
+            AddressingMode::IndirectRegister => write!(f, "IndirectRegister"),
+            AddressingMode::Immediate => write!(f, "Immediate"),
         }
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum OperandType {
-    Register,
-    MemoryAddress(AddressType),
-    Constant,
-}
-
-impl Display for OperandType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl AddressingMode {
+    pub fn bit_count(&self) -> u32 {
         match self {
-            OperandType::Register => write!(f, "Register"),
-            OperandType::MemoryAddress(AddressType::Code) => write!(f, "MemoryAddress (Code)"),
-            OperandType::MemoryAddress(AddressType::Data) => write!(f, "MemoryAddress (Data)"),
-            OperandType::Constant => write!(f, "Constant"),
+            AddressingMode::Register => 32 - (REG_COUNT - 1).leading_zeros(),
+            AddressingMode::DirectCode => 32 - (MEM_BITS - 1).leading_zeros(),
+            AddressingMode::DirectData => 32 - (MEM_BYTES - 1).leading_zeros(),
+            AddressingMode::Indirect => 32 - (MEM_BYTES - 1).leading_zeros(),
+            AddressingMode::IndirectRegister => 32 - (REG_COUNT - 1).leading_zeros(),
+            AddressingMode::Immediate => WORD_SIZE,
+        }
+    }
+
+    pub fn from_bits(bits: u32) -> Self {
+        match bits {
+            0 => AddressingMode::Register,
+            1 => AddressingMode::DirectCode,
+            2 => AddressingMode::DirectData,
+            3 => AddressingMode::Indirect,
+            4 => AddressingMode::IndirectRegister,
+            5 => AddressingMode::Immediate,
+            _ => panic!("Invalid addressing mode"),
         }
     }
 }
 
 #[derive(Clone)]
 pub struct OperandSpec {
-    pub operand_type: OperandType,
-    pub bit_count: u32,
+    pub allowed_modes: &'static [AddressingMode],
 }
 
 pub struct Operation {
@@ -65,20 +80,18 @@ pub struct OptSpec {
 impl OptSpec {
     pub fn clone() -> Self {
         static REG: OperandSpec = OperandSpec {
-            operand_type: OperandType::Register,
-            bit_count: 2,
+            allowed_modes: &[AddressingMode::Register],
         };
         static MEM_C: OperandSpec = OperandSpec {
-            operand_type: OperandType::MemoryAddress(AddressType::Code),
-            bit_count: 10,
+            allowed_modes: &[AddressingMode::DirectCode],
         };
-        static MEM_D: OperandSpec = OperandSpec {
-            operand_type: OperandType::MemoryAddress(AddressType::Data),
-            bit_count: 8,
-        };
-        static CONST: OperandSpec = OperandSpec {
-            operand_type: OperandType::Constant,
-            bit_count: 8,
+        static VALUE: OperandSpec = OperandSpec {
+            allowed_modes: &[
+                AddressingMode::DirectData,
+                AddressingMode::Indirect,
+                AddressingMode::IndirectRegister,
+                AddressingMode::Immediate,
+            ],
         };
 
         Self {
@@ -89,21 +102,34 @@ impl OptSpec {
                 Operation::new("OUT", vec![&REG]),
                 Operation::new("OUT_16", vec![]),
                 Operation::new("OUT_CHAR", vec![&REG]),
-                Operation::new("MOVER", vec![&REG, &MEM_D]),
-                Operation::new("MOVEM", vec![&REG, &MEM_D]),
-                Operation::new("MOVEI", vec![&REG, &CONST]),
-                Operation::new("ADD", vec![&REG, &REG, &REG]),
+                Operation::new("MOVER", vec![&REG, &VALUE]),
+                Operation::new("MOVEM", vec![&REG, &VALUE]),
+                Operation::new(
+                    "ADD",
+                    vec![
+                        &REG,
+                        &REG,
+                        &OperandSpec {
+                            allowed_modes: &[
+                                AddressingMode::Register,
+                                AddressingMode::DirectData,
+                                AddressingMode::Indirect,
+                                AddressingMode::IndirectRegister,
+                                AddressingMode::Immediate,
+                            ],
+                        },
+                    ],
+                ),
                 Operation::new("SUB", vec![&REG, &REG, &REG]),
                 Operation::new("MULT", vec![&REG, &REG, &REG]),
-                Operation::new("ADDI", vec![&REG, &REG, &CONST]),
-                Operation::new("SUBI", vec![&REG, &REG, &CONST]),
-                Operation::new("MULTI", vec![&REG, &REG, &CONST]),
+                Operation::new("SUBI", vec![&REG, &REG, &VALUE]),
+                Operation::new("MULTI", vec![&REG, &REG, &VALUE]),
                 Operation::new("ADC", vec![&REG, &REG, &REG]),
                 Operation::new("SBC", vec![&REG, &REG, &REG]),
-                Operation::new("ADCI", vec![&REG, &REG, &CONST]),
-                Operation::new("SBCI", vec![&REG, &REG, &CONST]),
+                Operation::new("ADCI", vec![&REG, &REG, &VALUE]),
+                Operation::new("SBCI", vec![&REG, &REG, &VALUE]),
                 Operation::new("MULT_16", vec![&REG]),
-                Operation::new("MULTI_16", vec![&CONST]),
+                Operation::new("MULTI_16", vec![&VALUE]),
                 Operation::new("JMP", vec![&MEM_C]),
                 Operation::new("JZ", vec![&MEM_C]),
                 Operation::new("JNZ", vec![&MEM_C]),
@@ -118,7 +144,7 @@ impl OptSpec {
                 // Operation::new("SHL", vec![&REG]),
                 // Operation::new("SHR", vec![&REG]),
                 // Operation::new("CMP", vec![&REG, &REG]),
-                // Operation::new("CMPI", vec![&REG, &CONST]),
+                // Operation::new("CMPI", vec![&REG, &VALUE]),
                 // Operation::new("JG", vec![&MEM_C]),
                 // Operation::new("JGE", vec![&MEM_C]),
                 // Operation::new("JL", vec![&MEM_C]),

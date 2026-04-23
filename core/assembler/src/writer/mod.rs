@@ -73,11 +73,13 @@ impl Writer {
 
                 for bit in format!("{:0>8b}", byte).chars() {
                     if self.pretty {
-                        if let Some(current) = delimiter_table.get_current() {
-                            if bits_written == current.address {
-                                debug_file.write_all(current.symbol.as_bytes())?;
-                                delimiter_table.next();
+                        while let Some(current) = delimiter_table.get_current().cloned() {
+                            if bits_written != current.address {
+                                break;
                             }
+
+                            debug_file.write_all(current.symbol.as_bytes())?;
+                            delimiter_table.next();
                         }
                         bits_written += 1;
                     }

@@ -1,8 +1,6 @@
 use super::super::super::render_error::{Diagnostic, render_error};
 use super::super::instruction::Statement;
-use super::{SemanticError, SemanticNode, SemanticParser};
-use once_cell::sync::Lazy;
-use regex::Regex;
+use super::{AddressType, SemanticError, SemanticNode, SemanticParser};
 
 impl SemanticParser {
     pub fn parse(
@@ -19,9 +17,7 @@ impl SemanticParser {
                         return Err(SemanticError::LabelAlreadyInUse(label.to_string()));
                     }
                     false => {
-                        let regex = Lazy::<Regex>::new(|| Regex::new("^[A-Z]+[A-Z0-9]*$").unwrap());
-
-                        if !regex.is_match(label.value.as_str()) {
+                        if !self.regexes.label.is_match(label.value.as_str()) {
                             return Err(SemanticError::InvalidLabel {
                                 message: label.to_string(),
                             });
@@ -38,7 +34,11 @@ impl SemanticParser {
                                     &mut semantic_nodes[entry.statement_number]
                                 {
                                     instr.operands.as_mut().unwrap()[entry.operand_number].value =
-                                        self.location_counter;
+                                        if entry.address_type == AddressType::Code {
+                                            self.location_counter
+                                        } else {
+                                            self.location_counter / 8
+                                        };
                                 }
                             }
 

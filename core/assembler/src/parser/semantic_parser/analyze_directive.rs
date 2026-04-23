@@ -6,7 +6,7 @@ use super::{SemanticError, SemanticParser};
 
 impl SemanticParser {
     pub fn analyze_directive(
-        &self,
+        &mut self,
         statement: Statement,
         source_lines: &Vec<String>,
     ) -> Result<RawBinary, SemanticError> {
@@ -113,6 +113,7 @@ impl SemanticParser {
                 });
             }
         };
+        self.statement_counter += 1;
         Ok(data)
     }
 }

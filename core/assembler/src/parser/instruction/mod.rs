@@ -1,9 +1,19 @@
+use isa::AddressingMode;
+
 use super::super::lexer::token::SourceLoc;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum OperandType {
+    Immediate,
+    IndirectMemory,
+    Unknown,
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct StatementField {
     pub value: String,
     pub loc: SourceLoc,
+    pub operand_type: Option<OperandType>,
 }
 
 impl std::fmt::Display for StatementField {
@@ -31,22 +41,47 @@ impl Statement {
     }
 
     pub fn set_label(&mut self, value: String, loc: SourceLoc) {
-        self.label = Some(StatementField { value, loc });
+        self.label = Some(StatementField {
+            value,
+            loc,
+            operand_type: None,
+        });
     }
 
     pub fn set_identifier(&mut self, value: String, loc: SourceLoc) {
-        self.identifier = Some(StatementField { value, loc });
+        self.identifier = Some(StatementField {
+            value,
+            loc,
+            operand_type: None,
+        });
     }
 
     pub fn set_directive(&mut self, value: String, loc: SourceLoc) {
-        self.directive = Some(StatementField { value, loc });
+        self.directive = Some(StatementField {
+            value,
+            loc,
+            operand_type: None,
+        });
     }
 
-    pub fn add_operand(&mut self, value: String, loc: SourceLoc) {
+    pub fn add_operand(
+        &mut self,
+        value: String,
+        loc: SourceLoc,
+        operand_type: Option<OperandType>,
+    ) {
         if let Some(operands) = &mut self.operands {
-            operands.push(StatementField { value, loc });
+            operands.push(StatementField {
+                value,
+                loc,
+                operand_type: operand_type,
+            });
         } else {
-            self.operands = Some(vec![StatementField { value, loc }]);
+            self.operands = Some(vec![StatementField {
+                value,
+                loc,
+                operand_type: operand_type,
+            }]);
         }
     }
 }
@@ -55,6 +90,7 @@ impl Statement {
 pub struct InstructionField {
     pub value: u32,
     pub bit_count: u32,
+    pub addressing_mode: Option<AddressingMode>,
 }
 
 #[derive(Debug, Clone, Default)]

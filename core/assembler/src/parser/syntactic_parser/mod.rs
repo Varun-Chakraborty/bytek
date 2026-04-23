@@ -4,7 +4,7 @@ use super::super::{
     lexer::token::{TokenStream, TokenType},
     render_error::{Diagnostic, render_error},
 };
-use super::instruction::Statement;
+use super::instruction::{OperandType, Statement};
 
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum SyntacticError {
@@ -19,6 +19,9 @@ enum DFAState {
     ExpectDirective,
     AfterDirective,
     AfterOpcode,
+    ExpectImmediate,
+    ExpectIndirect,
+    ExpectClosingSquareBracket,
     AfterOperand,
     ExpectOperand, // after comma
 }
@@ -41,10 +44,10 @@ impl SyntacticParser {
         let mut state = DFAState::Start;
         loop {
             let current_token = tokens.seek(0).unwrap();
-            let value = current_token.value.clone().unwrap();
             let source_loc = current_token.source_loc;
             match current_token.token_type {
                 TokenType::Identifier => {
+                    let value = current_token.value.clone().unwrap();
                     match state {
                         DFAState::Start => {
                             // label or opcode
@@ -64,12 +67,24 @@ impl SyntacticParser {
                         DFAState::ExpectOperand
                         | DFAState::AfterOpcode
                         | DFAState::AfterDirective => {
-                            statement.add_operand(value, source_loc);
+                            statement.add_operand(value, source_loc, Some(OperandType::Unknown));
                             state = DFAState::AfterOperand;
                         }
                         DFAState::ExpectDirective => {
                             statement.set_directive(value, source_loc);
                             state = DFAState::AfterDirective;
+                        }
+                        DFAState::ExpectImmediate => {
+                            statement.add_operand(value, source_loc, Some(OperandType::Immediate));
+                            state = DFAState::AfterOperand;
+                        }
+                        DFAState::ExpectIndirect => {
+                            statement.add_operand(
+                                value,
+                                source_loc,
+                                Some(OperandType::IndirectMemory),
+                            );
+                            state = DFAState::ExpectClosingSquareBracket;
                         }
                         _ => {
                             return Err(SyntacticError::UnexpectedToken {
@@ -91,12 +106,22 @@ impl SyntacticParser {
                     tokens.next();
                 }
                 TokenType::Symbol => {
+                    let value = current_token.value.clone().unwrap();
                     if state == DFAState::AfterOperand && value.as_str() == "," {
                         state = DFAState::ExpectOperand;
                     } else if (state == DFAState::Start || state == DFAState::AfterLabel)
                         && value.as_str() == "."
                     {
                         state = DFAState::ExpectDirective;
+                    } else if state == DFAState::AfterOpcode || state == DFAState::ExpectOperand {
+                        if value == "#" {
+                            state = DFAState::ExpectImmediate;
+                        }
+                        if value == "[" {
+                            state = DFAState::ExpectIndirect;
+                        }
+                    } else if state == DFAState::ExpectClosingSquareBracket && value == "]" {
+                        state = DFAState::AfterOperand;
                     } else {
                         return Err(SyntacticError::UnexpectedToken {
                             message: render_error(Diagnostic {
@@ -186,6 +211,17 @@ impl SyntacticParser {
                                     source_line: &source_lines[source_loc.line as usize - 1],
                                     column: source_loc.column,
                                     help: Some("A directive name is expected after '.'"),
+                                }),
+                            });
+                        }
+                        DFAState::ExpectImmediate => {
+                            return Err(SyntacticError::UnexpectedToken {
+                                message: render_error(Diagnostic {
+                                    headline: "Unexpected token".to_string(),
+                                    line: source_loc.line,
+                                    source_line: &source_lines[source_loc.line as usize - 1],
+                                    column: source_loc.column,
+                                    help: Some("An immediate value is expected"),
                                 }),
                             });
                         }
@@ -316,14 +352,16 @@ mod tests {
             statements[0].label,
             Some(StatementField {
                 value: "MOVE".to_string(),
-                loc: SourceLoc { line: 1, column: 1 }
+                loc: SourceLoc { line: 1, column: 1 },
+                operand_type: None
             })
         );
         assert_eq!(
             statements[0].identifier,
             Some(StatementField {
                 value: "MOVER".to_string(),
-                loc: SourceLoc { line: 1, column: 7 }
+                loc: SourceLoc { line: 1, column: 7 },
+                operand_type: None
             })
         );
         assert_eq!(
@@ -334,14 +372,16 @@ mod tests {
                     loc: SourceLoc {
                         line: 1,
                         column: 13
-                    }
+                    },
+                    operand_type: Some(OperandType::Unknown)
                 },
                 StatementField {
                     value: "0".to_string(),
                     loc: SourceLoc {
                         line: 1,
                         column: 17
-                    }
+                    },
+                    operand_type: Some(OperandType::Unknown)
                 }
             ])
         );
@@ -349,14 +389,16 @@ mod tests {
             statements[1].label,
             Some(StatementField {
                 value: "MOVE1".to_string(),
-                loc: SourceLoc { line: 2, column: 1 }
+                loc: SourceLoc { line: 2, column: 1 },
+                operand_type: None
             })
         );
         assert_eq!(
             statements[1].identifier,
             Some(StatementField {
                 value: "MOVER".to_string(),
-                loc: SourceLoc { line: 2, column: 8 }
+                loc: SourceLoc { line: 2, column: 8 },
+                operand_type: None
             })
         );
         assert_eq!(
@@ -367,14 +409,16 @@ mod tests {
                     loc: SourceLoc {
                         line: 2,
                         column: 14
-                    }
+                    },
+                    operand_type: Some(OperandType::Unknown)
                 },
                 StatementField {
                     value: "0".to_string(),
                     loc: SourceLoc {
                         line: 2,
                         column: 18
-                    }
+                    },
+                    operand_type: Some(OperandType::Unknown)
                 }
             ])
         );
@@ -407,14 +451,16 @@ mod tests {
             statements[0].identifier,
             Some(StatementField {
                 value: "CALL".to_string(),
-                loc: SourceLoc { line: 1, column: 1 }
+                loc: SourceLoc { line: 1, column: 1 },
+                operand_type: None
             })
         );
         assert_eq!(
             statements[0].operands,
             Some(vec![StatementField {
                 value: "R0".to_string(),
-                loc: SourceLoc { line: 1, column: 6 }
+                loc: SourceLoc { line: 1, column: 6 },
+                operand_type: Some(OperandType::Unknown)
             }])
         );
     }
@@ -441,7 +487,8 @@ mod tests {
             statements[0].identifier,
             Some(StatementField {
                 value: "RET".to_string(),
-                loc: SourceLoc { line: 1, column: 1 }
+                loc: SourceLoc { line: 1, column: 1 },
+                operand_type: None
             })
         );
         assert_eq!(statements[0].operands, None);

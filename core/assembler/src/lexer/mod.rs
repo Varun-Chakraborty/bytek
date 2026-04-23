@@ -70,20 +70,14 @@ impl Lexer {
         });
     }
 
-    pub fn lex(
-        &mut self,
-        assembly_program: &str,
-    ) -> Result<(TokenStream, Vec<String>), LexerError> {
-        let mut is_comment = false;
-
+    pub fn lex(&mut self, program: &str) -> Result<(TokenStream, Vec<String>), LexerError> {
         // Split the assembly program into lines for future use
-        self.source_lines = assembly_program
-            .split('\n')
-            .map(|s| s.to_string())
-            .collect();
+        self.source_lines = program.split('\n').map(|s| s.to_string()).collect();
 
         // Tokenize
-        for char in assembly_program.chars() {
+        let mut is_comment = false;
+
+        for char in program.chars() {
             self.column += 1;
             if is_comment {
                 if char == '\n' {
@@ -98,7 +92,7 @@ impl Lexer {
                 continue;
             }
             match char {
-                ':' | ',' | '+' | '(' | ')' | '&' | '.' => {
+                ':' | ',' | '+' | '(' | ')' | '&' | '.' | '#' | '[' | ']' => {
                     self.push_identifier();
                     self.token_loc.line = self.line;
                     self.token_loc.column = self.column;

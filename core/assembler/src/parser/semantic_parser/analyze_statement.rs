@@ -1,3 +1,5 @@
+use isa::MODE_BIT_COUNT;
+
 use super::super::super::render_error::{Diagnostic, render_error};
 use super::super::instruction::{Instruction, InstructionField, Statement};
 use super::{SemanticError, SemanticParser};
@@ -103,7 +105,7 @@ impl SemanticParser {
         let size = self.optspec.opcode_bit_count
             + operands
                 .iter()
-                .fold(0, |acc, operand| acc + operand.bit_count);
+                .fold(0, |acc, operand| acc + operand.bit_count + MODE_BIT_COUNT);
 
         self.statement_counter += 1;
 
@@ -111,6 +113,7 @@ impl SemanticParser {
             opcode: InstructionField {
                 value: opcode as u32,
                 bit_count: self.optspec.opcode_bit_count,
+                addressing_mode: None,
             },
             operands: Some(operands),
             size,

@@ -39,10 +39,18 @@ pub struct Regexes {
     label: Lazy<Regex>,
 }
 
+#[derive(PartialEq, Debug)]
+enum AddressType {
+    Code,
+    Data,
+}
+
+#[derive(PartialEq, Debug)]
 pub struct TiiEntry {
     at: SourceLoc,
     statement_number: usize,
     operand_number: usize,
+    address_type: AddressType,
 }
 
 pub struct SemanticParser {
@@ -113,6 +121,10 @@ impl SemanticParser {
 
 #[cfg(test)]
 mod tests {
+    use isa::AddressingMode;
+
+    use crate::parser::instruction::OperandType;
+
     use super::super::super::lexer::token::SourceLoc;
     use super::super::{
         instruction::{InstructionField, Statement, StatementField},
@@ -127,6 +139,7 @@ mod tests {
                 label: Some(StatementField {
                     value: "MOVE".to_string(),
                     loc: SourceLoc { line: 1, column: 1 },
+                    operand_type: None,
                 }),
                 directive: None,
                 identifier: None,
@@ -137,12 +150,14 @@ mod tests {
                 identifier: Some(StatementField {
                     value: "MOVER".to_string(),
                     loc: SourceLoc { line: 2, column: 1 },
+                    operand_type: None,
                 }),
                 directive: None,
                 operands: Some(vec![
                     StatementField {
                         value: "R0".to_string(),
                         loc: SourceLoc { line: 2, column: 7 },
+                        operand_type: Some(OperandType::Unknown),
                     },
                     StatementField {
                         value: "0".to_string(),
@@ -150,6 +165,7 @@ mod tests {
                             line: 2,
                             column: 11,
                         },
+                        operand_type: Some(OperandType::Unknown),
                     },
                 ]),
             },
@@ -166,8 +182,9 @@ mod tests {
                 assert_eq!(
                     instr.opcode,
                     InstructionField {
-                        value: 1,
-                        bit_count: 6
+                        value: 5,
+                        bit_count: 6,
+                        addressing_mode: None
                     }
                 );
                 let operands = instr.operands.as_ref().unwrap();
@@ -176,14 +193,16 @@ mod tests {
                     operands[0],
                     InstructionField {
                         value: 0,
-                        bit_count: 2
+                        bit_count: 2,
+                        addressing_mode: Some(AddressingMode::Register)
                     }
                 );
                 assert_eq!(
                     operands[1],
                     InstructionField {
                         value: 0,
-                        bit_count: 4
+                        bit_count: 8,
+                        addressing_mode: Some(AddressingMode::DirectData)
                     }
                 );
             }

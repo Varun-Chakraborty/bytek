@@ -6,7 +6,7 @@ mod registers;
 use crate::instruction::{Instruction, InstructionError};
 use crate::memory::{Memory, MemoryError};
 use crate::registers::{RegisterError, Registers};
-use isa::{MEM_SIZE, OptSpec, REG_COUNT};
+use isa::{AddressingMode, MEM_BYTES, OptSpec, REG_COUNT};
 use logger::{LogTo, Logger, LoggerError};
 use std::{io, num::ParseIntError};
 
@@ -30,6 +30,8 @@ pub enum VMError {
     InvalidBinary,
     #[error("Error converting Vec to slice")]
     VecToSlice,
+    #[error("Invalid operand mode: {mode} with value: {value}")]
+    InvalidOperandMode { mode: AddressingMode, value: u32 },
 }
 
 pub struct MyVM {
@@ -48,7 +50,7 @@ pub enum MemoryAccessType {
 
 #[derive(Debug, Clone)]
 pub struct MemoryAccess {
-    pub address: u32,
+    pub addresses: Vec<u32>,
     pub value: u8,
     pub type_: MemoryAccessType,
 }
@@ -72,8 +74,8 @@ impl MyVM {
     pub fn new() -> Result<Self, VMError> {
         Ok(Self {
             opt_spec: OptSpec::clone(),
-            memory: Memory::new(MEM_SIZE),
-            registers: Registers::new(REG_COUNT, MEM_SIZE),
+            memory: Memory::new(MEM_BYTES),
+            registers: Registers::new(REG_COUNT, MEM_BYTES),
             logger: Logger::new(
                 String::from("vm.txt"),
                 String::from("/logs/"),
@@ -83,51 +85,48 @@ impl MyVM {
         })
     }
 
-    fn execute(&mut self, instruction: Instruction) -> Result<ExecutionStep, VMError> {
-        let operands = instruction.get_operands();
+    fn execute(&mut self, instr: Instruction) -> Result<ExecutionStep, VMError> {
+        let changes = match instr.get_operation_name().to_lowercase().as_str() {
+            "halt" => Ok(self.halt()?),
+            "in" => Ok(self.input(&instr)?),
+            "out" => Ok(self.output(&instr)?),
+            "out_16" => Ok(self.output_16()?),
+            "out_char" => Ok(self.output_char(&instr)?),
 
-        let changes = match instruction.get_operation_name().to_lowercase().as_str() {
-            "halt" => Ok(self.halt(operands)?),
-            "in" => Ok(self.input(operands)?),
-            "out" => Ok(self.output(operands)?),
-            "out_16" => Ok(self.output_16(operands)?),
-            "out_char" => Ok(self.output_char(operands)?),
+            "mover" => Ok(self.mover(&instr)?),
+            "movem" => Ok(self.movem(&instr)?),
 
-            "mover" => Ok(self.mover(operands, false)?),
-            "movem" => Ok(self.movem(operands)?),
-            "movei" => Ok(self.mover(operands, true)?),
+            "add" => Ok(self.add(&instr)?),
+            "sub" => Ok(self.sub(&instr)?),
+            "mult" => Ok(self.mult(&instr)?),
 
-            "add" => Ok(self.add(operands, false)?),
-            "sub" => Ok(self.sub(operands, false)?),
-            "mult" => Ok(self.mult(operands, false)?),
+            "addi" => Ok(self.add(&instr)?),
+            "subi" => Ok(self.sub(&instr)?),
+            "multi" => Ok(self.mult(&instr)?),
 
-            "addi" => Ok(self.add(operands, true)?),
-            "subi" => Ok(self.sub(operands, true)?),
-            "multi" => Ok(self.mult(operands, true)?),
+            "adc" => Ok(self.adc(&instr)?),
+            "sbc" => Ok(self.sbc(&instr)?),
 
-            "adc" => Ok(self.adc(operands, false)?),
-            "sbc" => Ok(self.sbc(operands, false)?),
+            "adci" => Ok(self.adc(&instr)?),
+            "sbci" => Ok(self.sbc(&instr)?),
 
-            "adci" => Ok(self.adc(operands, true)?),
-            "sbci" => Ok(self.sbc(operands, true)?),
+            "mult_16" => Ok(self.mult_16(&instr)?),
+            "multi_16" => Ok(self.mult_16(&instr)?),
 
-            "mult_16" => Ok(self.mult_16(operands, false)?),
-            "multi_16" => Ok(self.mult_16(operands, true)?),
-
-            "jmp" => Ok(self.jmp(operands)?),
-            "jz" => Ok(self.jz(operands)?),
-            "jnz" => Ok(self.jnz(operands)?),
-            "push" => Ok(self.push(operands)?),
-            "pop" => Ok(self.pop(operands)?),
-            "call" => Ok(self.call(operands)?),
-            "ret" => Ok(self.ret(operands)?),
+            "jmp" => Ok(self.jmp(&instr)?),
+            "jz" => Ok(self.jz(&instr)?),
+            "jnz" => Ok(self.jnz(&instr)?),
+            "push" => Ok(self.push(&instr)?),
+            "pop" => Ok(self.pop(&instr)?),
+            "call" => Ok(self.call(&instr)?),
+            "ret" => Ok(self.ret()?),
             _ => Err(VMError::NoImplementation(
-                instruction.get_operation_name().to_string(),
+                instr.get_operation_name().to_string(),
             )),
         }?;
 
         Ok(ExecutionStep {
-            instruction_str: format!("{:?}", instruction),
+            instruction_str: format!("{:?}", instr),
             address: self.registers.pc,
             changed_regs: changes.registers,
             memory_access: changes.memory_access,

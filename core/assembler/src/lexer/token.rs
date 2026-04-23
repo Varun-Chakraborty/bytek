@@ -48,7 +48,7 @@ impl TokenStream {
         if at + self.index as u32 >= self.tokens.len() as u32 {
             return None;
         }
-        let token = Some(&self.tokens[self.index + at as usize]);
+        let token = self.tokens.get(self.index + at as usize);
         token
     }
 

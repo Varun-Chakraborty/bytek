@@ -46,6 +46,8 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use isa::AddressingMode;
+
     use crate::parser::instruction::SemanticNode;
 
     use super::{
@@ -114,8 +116,9 @@ mod tests {
                 assert_eq!(
                     instruction.opcode,
                     InstructionField {
-                        value: 1,
-                        bit_count: 6
+                        value: 5,
+                        bit_count: 6,
+                        addressing_mode: None
                     }
                 );
                 let operands = instruction.operands.as_ref().unwrap();
@@ -124,14 +127,16 @@ mod tests {
                     operands[0],
                     InstructionField {
                         value: 0,
-                        bit_count: 2
+                        bit_count: 2,
+                        addressing_mode: Some(AddressingMode::Register)
                     }
                 );
                 assert_eq!(
                     operands[1],
                     InstructionField {
                         value: 0,
-                        bit_count: 4
+                        bit_count: 8,
+                        addressing_mode: Some(AddressingMode::DirectData)
                     }
                 );
             }

@@ -2,6 +2,7 @@ pub mod delimiter;
 
 use self::delimiter::DelimiterTable;
 use super::parser::instruction::{Instruction, RawBinary, SemanticNode};
+use isa::MODE_BIT_COUNT;
 use std::mem;
 use thiserror::Error;
 
@@ -57,6 +58,20 @@ impl Encoder {
 
         if let Some(operands) = instruction.operands {
             for operand in operands {
+                let mode = operand.addressing_mode;
+                self.delimiter_table
+                    .append(String::from('('), self.location_counter as usize);
+                if let Some(mode) = mode {
+                    let binary = self.generate_binary(mode as u32, MODE_BIT_COUNT as usize)?;
+                    for bit in binary.chars() {
+                        self.bits_stream
+                            .push(bit.to_digit(10).ok_or(EncoderError::ParseInt(bit))? as u8);
+                    }
+
+                    self.location_counter += MODE_BIT_COUNT as u32;
+                }
+                self.delimiter_table
+                    .append(String::from(')'), self.location_counter as usize);
                 let binary = self.generate_binary(operand.value, operand.bit_count as usize)?;
                 for bit in binary.chars() {
                     self.bits_stream
@@ -138,6 +153,8 @@ impl Encoder {
 
 #[cfg(test)]
 mod tests {
+    use isa::AddressingMode;
+
     use super::super::parser::instruction::{Instruction, InstructionField};
     use super::*;
 
@@ -148,14 +165,16 @@ mod tests {
             opcode: InstructionField {
                 value: 4,
                 bit_count: 6,
+                addressing_mode: None,
             },
             operands: Some(vec![InstructionField {
                 value: 1,
                 bit_count: 3,
+                addressing_mode: Some(AddressingMode::Register),
             }]),
             size: 6,
         })];
         let (binary, _) = encoder.encode(instructions).unwrap();
-        assert_eq!(binary, vec![16, 128, 0, 0, 0, 9]);
+        assert_eq!(binary, vec![16, 16, 0, 0, 0, 12]);
     }
 }
