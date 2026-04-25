@@ -26,6 +26,7 @@ impl Operand {
 
 #[derive(Debug)]
 pub struct Instruction {
+    pc: u32,
     opcode: u32,
     operation_name: String,
     operands: Vec<Operand>,
@@ -35,8 +36,8 @@ impl std::fmt::Display for Instruction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Opcode: {}, Operation_name: {}, Operands: {:?}",
-            self.opcode, self.operation_name, self.operands
+            "PC: {}, Opcode: {}, Operation_name: {}, Operands: {:?}",
+            self.pc, self.opcode, self.operation_name, self.operands
         )
     }
 }
@@ -58,6 +59,7 @@ impl Instruction {
         pc: &mut u32,
         optspec: &isa::OptSpec,
     ) -> Result<Self, InstructionError> {
+        let start_pc = *pc;
         let opcode = get_bits(memory, *pc, optspec.opcode_bit_count as u32)?;
 
         let operation = match optspec.get_by_opcode(&opcode) {
@@ -87,6 +89,7 @@ impl Instruction {
         )?;
 
         Ok(Self {
+            pc: start_pc,
             opcode,
             operands,
             operation_name: operation.operation_name.clone(),

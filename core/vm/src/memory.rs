@@ -27,7 +27,7 @@ impl<T: Copy + Default + PrimInt + Debug> Memory<T> {
         if cell > self.mem.len() as u32 - 1 {
             return Err(MemoryError::OutOfBounds);
         }
-        self.mem.insert(cell as usize, value);
+        self.mem[cell as usize] = value;
         Ok(())
     }
 

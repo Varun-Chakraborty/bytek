@@ -12,11 +12,11 @@ use std::{io, num::ParseIntError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum VMError {
-    #[error("{0}")]
+    #[error("Memory error: {0}")]
     Memory(#[from] MemoryError),
-    #[error("{0}")]
+    #[error("Register error: {0}")]
     Register(#[from] RegisterError),
-    #[error("{0}")]
+    #[error("IO error: {0}")]
     IO(#[from] io::Error),
     #[error("{0}")]
     ParseInt(#[from] ParseIntError),
@@ -130,10 +130,8 @@ impl MyVM {
         let instruction = Instruction::new(&self.memory, &mut self.registers.pc, &self.opt_spec)?;
 
         if self.debug {
-            self.logger.log(format!(
-                "Executing instruction at PC {}: {}",
-                self.registers.pc, instruction
-            ))?;
+            self.logger
+                .log(format!("Executing instruction: {}", instruction))?;
         }
         self.execute(instruction)
     }
