@@ -15,7 +15,7 @@ cargo run -p vm
 The current binary entrypoint loads `kernel.bin` from the current working directory. To assemble a program into that path:
 
 ```bash
-cargo run -p assembler programs/index.asm --out=kernel.bin
+cargo run -p assembler programs/kernel.asm --out=kernel.bin
 ```
 
 Then run:
@@ -45,7 +45,7 @@ The VM is an 8-bit machine with a compact bit-level instruction encoding.
 | Program counter | Bit address | `pc` points to the next bit to decode, not just the next byte. |
 | Addressing-mode tag | 3 bits | Every encoded operand starts with a 3-bit addressing-mode field. |
 | EOF | Bit address | Loaded programs carry their effective bit length, and execution stops when `pc` reaches `eof`. |
-| Stack pointer | Memory cell address | `sp` starts at the top of memory and grows downward for `PUSH`, `POP`, `CALL`, and `RET`. |
+| Stack pointer | Memory cell address | `sp` starts at `MEM_BYTES`, one past the last valid memory cell, and grows downward for `PUSH`, `POP`, `CALL`, and `RET`. The first pushed value lands at address `255`. |
 | Flags | `zero`, `sign`, `overflow`, `carry` | Arithmetic and movement instructions update condition flags used by conditional jumps. |
 
 Instruction decoding is driven by the shared `isa` crate:
@@ -57,7 +57,7 @@ Instruction decoding is driven by the shared `isa` crate:
 - Code-address operands are 11 bits because they target bit positions in the 256-byte program-memory space.
 - Immediate operands are 8 bits.
 
-The VM stores program bytes in the same memory structure it uses for data. `Instruction::new` reads bits from memory starting at `pc`, consumes the opcode and operands according to the ISA table, and advances `pc` as it decodes. Jump and call instructions then overwrite `pc` with a code-address operand.
+The VM stores program bytes in the same fixed-size memory structure it uses for data. Memory writes overwrite an existing cell instead of inserting a new one, so addresses stay stable from `0` through `255`. `Instruction::new` reads bits from memory starting at `pc`, records that starting `pc` for debug output, consumes the opcode and operands according to the ISA table, and advances `pc` as it decodes. Jump and call instructions then overwrite `pc` with a code-address operand.
 
 Assembled binaries end with a 4-byte big-endian EOF marker. `load_kernel()` strips those final 4 bytes, stores the decoded bit length in `registers.eof`, loads the remaining bytes into memory, resets `pc` to `0`, and starts execution.
 
@@ -78,6 +78,8 @@ Execution follows the usual fetch-decode-execute loop:
 - `run()` executes until the loaded program halts or reaches EOF.
 - `reset()` clears registers and memory.
 - `get_state()` returns a borrowed snapshot of registers and memory.
+
+When `debug` is enabled, each decoded instruction is logged with the bit-address `PC` where decoding began, followed by the opcode, operation name, and decoded operands.
 
 ## Implemented Instructions
 

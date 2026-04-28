@@ -1,5 +1,5 @@
 # Bytek
-![Rust](https://img.shields.io/badge/Rust-1.89.0-orange)
+![Rust](https://img.shields.io/badge/Rust-stable-orange)
 ![MIT](https://img.shields.io/badge/License-MIT-green)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Varun-Chakraborty/bytek)
 [![Release](https://github.com/Varun-Chakraborty/bytek/actions/workflows/release.yml/badge.svg)](https://github.com/Varun-Chakraborty/bytek/actions/workflows/release.yml)
@@ -32,7 +32,7 @@ cargo build --workspace
 Assemble a program:
 
 ```bash
-cargo run -p assembler programs/index.asm --debug --pretty --out=kernel.bin
+cargo run -p assembler programs/kernel.asm --debug --pretty --out=kernel.bin
 ```
 
 Run the VM from the repository root:
@@ -56,7 +56,7 @@ The VM currently loads `kernel.bin` from the current working directory and has n
 2. The `assembler` uses the shared `isa` crate to validate operation names and operands.
 3. The `assembler` writes bytecode, normally as `output.bin` or a path passed with `--out=...`.
 4. The `vm` loads `kernel.bin`, decodes bytes using the same `isa` crate, and executes instructions step by step.
-5. The `compiler` crate is currently a library-only work area. Its `compile()` path only lexes input and prints the token stream scaffold, but that crate is where higher-level language work is headed.
+5. The `compiler` crate is currently a library-only work area. Its `compile()` path runs the placeholder lexer and prints the token stream scaffold, but that crate is where higher-level language work is headed.
 
 ## Development
 

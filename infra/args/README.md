@@ -20,7 +20,7 @@ It collects common flags into the `Args` struct:
 let args = args::Args::parse()?;
 ```
 
-`Args::parse()` reads `std::env::args()` and returns an `ArgsError::InvalidFlag` only for parser-level flag errors.
+`Args::parse()` reads `std::env::args()` and currently performs only lightweight extraction. The `ArgsError::InvalidFlag` type exists for future parser-level validation, but no current branch returns it.
 
 Notes about the current implementation:
 

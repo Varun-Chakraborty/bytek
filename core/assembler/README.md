@@ -8,7 +8,7 @@ The crate owns the source-to-bytecode pipeline:
 - Preprocess source before semantic analysis.
 - Parse tokens into statements.
 - Resolve operation names and operands through the `isa` crate.
-- Encode instructions and raw data into bytes.
+- Encode instructions, raw numeric data, and string data into bytes.
 - Write binary output, plus optional debug output.
 
 ## Usage
@@ -16,7 +16,7 @@ The crate owns the source-to-bytecode pipeline:
 From the workspace root:
 
 ```bash
-cargo run -p assembler programs/index.asm
+cargo run -p assembler programs/kernel.asm
 ```
 
 By default this writes `output.bin`.
@@ -24,19 +24,19 @@ By default this writes `output.bin`.
 To choose the output path:
 
 ```bash
-cargo run -p assembler programs/index.asm --out=kernel.bin
+cargo run -p assembler programs/kernel.asm --out=kernel.bin
 ```
 
 To also write an ASCII bit dump:
 
 ```bash
-cargo run -p assembler programs/index.asm --debug
+cargo run -p assembler programs/kernel.asm --debug
 ```
 
 To prettify the debug dump with instruction delimiters:
 
 ```bash
-cargo run -p assembler programs/index.asm --debug --pretty
+cargo run -p assembler programs/kernel.asm --debug --pretty
 ```
 
 The binary currently accepts these parsed flags from `infra/args`:
@@ -66,6 +66,24 @@ Example:
 ```asm
 MOVE: MOVER R0, 0
 ```
+
+Directives currently supported by the semantic parser:
+
+| Directive | Operands | Encoded output |
+| --- | --- | --- |
+| `.byte` | one integer constant | One 8-bit byte. |
+| `.ascii` | one quoted string | One 8-bit byte per character whose scalar value fits in 8 bits. |
+| `.align` | none | Zero bits until the next byte boundary. |
+
+String operands are accepted for directives such as `.ascii`:
+
+```asm
+.ascii "Hello\n"
+.ascii "Tabbed\ttext"
+.ascii "Null\0terminated"
+```
+
+The lexer decodes `\n`, `\t`, and `\0` inside strings. Other escape sequences are rejected. Because `.ascii` emits 8-bit values, characters with scalar values above `255` fail during encoding. String operands are not valid instruction operands unless a future ISA operation explicitly supports them.
 
 ## Output
 

@@ -11,8 +11,9 @@ The current pipeline is intentionally small:
 
 - it creates a compiler-local lexer,
 - splits the input into source lines,
-- returns a placeholder `TokenStream`,
-- and prints the lexed token stream for inspection.
+- returns an empty placeholder `TokenStream` internally,
+- prints that token stream for inspection,
+- and returns `Ok(())` from `compile()` when lexing succeeds.
 
 There is no parser, IR, code generator, or binary CLI entrypoint yet.
 
