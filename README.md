@@ -47,16 +47,17 @@ The VM currently loads `kernel.bin` from the current working directory and has n
 
 - [`core`](./core): core system crates.
 - [`infra`](./infra): shared support crates used by command-line tools.
-- [`programs`](./programs): sample assembly programs.
+- [`programs`](./programs): sample assembly programs, including reusable `.asm` routines that can be pulled in with `.include`.
 - [`scripts`](./scripts): helper scripts.
 
 ## How The Pieces Fit
 
 1. Assembly source in [`programs`](./programs) is passed to the `assembler`.
-2. The `assembler` uses the shared `isa` crate to validate operation names and operands.
-3. The `assembler` writes bytecode, normally as `output.bin` or a path passed with `--out=...`.
-4. The `vm` loads `kernel.bin`, decodes bytes using the same `isa` crate, and executes instructions step by step.
-5. The `compiler` crate is currently a library-only work area. Its `compile()` path runs the placeholder lexer and prints the token stream scaffold, but that crate is where higher-level language work is headed.
+2. The `assembler` preprocesses source statements such as `.include "stdlib.asm"` before lexing.
+3. The `assembler` uses the shared `isa` crate to validate operation names and operands.
+4. The `assembler` writes bytecode, normally as `output.bin` or a path passed with `--out=...`.
+5. The `vm` loads `kernel.bin`, decodes bytes using the same `isa` crate, and executes instructions step by step.
+6. The `compiler` crate is currently a library-only work area. Its `compile()` path runs the placeholder lexer and prints the token stream scaffold, but that crate is where higher-level language work is headed.
 
 ## Development
 

@@ -4,8 +4,8 @@
 
 The crate owns the source-to-bytecode pipeline:
 
-- Lex assembly text into tokens.
 - Preprocess source before semantic analysis.
+- Lex assembly text into tokens.
 - Parse tokens into statements.
 - Resolve operation names and operands through the `isa` crate.
 - Encode instructions, raw numeric data, and string data into bytes.
@@ -59,13 +59,27 @@ LABEL: OPCODE OPERAND, OPERAND, OPERAND
 ```
 
 Labels are optional. Operands are interpreted using the operand specs from [`../isa`](../isa).
-The parser also supports assembler directives that become raw binary data in the encoded stream.
+The preprocessor runs before lexing, and the parser supports assembler directives that become raw binary data in the encoded stream.
 
 Example:
 
 ```asm
 MOVE: MOVER R0, 0
 ```
+
+Preprocessor statements currently supported:
+
+| Statement | Operand | Behavior |
+| --- | --- | --- |
+| `.include` | one double-quoted `.asm` file path | Replaces the statement with the contents of `programs/<path>`. |
+
+For example, [`programs/kernel.asm`](../../programs/kernel.asm) can pull in shared assembly routines:
+
+```asm
+.include "stdlib.asm"
+```
+
+Include paths must be double-quoted and end in `.asm`. The current implementation resolves them from the workspace `programs` directory, so assembler commands should be run from the repository root when using includes.
 
 Directives currently supported by the semantic parser:
 
@@ -97,8 +111,8 @@ The VM currently looks for `kernel.bin`, so use `--out=kernel.bin` when preparin
 
 ## Internal Structure
 
+- `preprocessor`: expands supported source-level statements such as `.include`.
 - `lexer`: tokenizes source text and tracks source locations.
-- `preprocessor`: handles preprocessing before parse.
 - `parser`: converts tokens into validated semantic nodes.
 - `encoder`: turns semantic nodes into bytes.
 - `writer`: writes binary output and an optional ASCII/debug bit view.

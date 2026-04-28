@@ -59,6 +59,8 @@ Instruction decoding is driven by the shared `isa` crate:
 
 The VM stores program bytes in the same fixed-size memory structure it uses for data. Memory writes overwrite an existing cell instead of inserting a new one, so addresses stay stable from `0` through `255`. `Instruction::new` reads bits from memory starting at `pc`, records that starting `pc` for debug output, consumes the opcode and operands according to the ISA table, and advances `pc` as it decodes. Jump and call instructions then overwrite `pc` with a code-address operand.
 
+`CALL` stores the decoded return address on the stack before jumping. Return addresses currently use two bytes: the low byte is pushed first, then the high byte. `RET` reads the high byte and then the low byte, rebuilds the bit address, advances `sp` past both bytes, and resumes execution at that address.
+
 Assembled binaries end with a 4-byte big-endian EOF marker. `load_kernel()` strips those final 4 bytes, stores the decoded bit length in `registers.eof`, loads the remaining bytes into memory, resets `pc` to `0`, and starts execution.
 
 Execution follows the usual fetch-decode-execute loop:

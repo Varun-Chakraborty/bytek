@@ -84,14 +84,10 @@ JMP START
 .align
 
 MESSAGE:
-.ascii "Welcome to the kernel!\nType 'help' for a list of commands.\n\0"
+.ascii "Hello World\n\0"
+
+.include "stdlib.asm"
 
 START:
     MOVER R0, #MESSAGE
-LOOP:
-    MOVER R1, [R0]
-    JZ EXIT
-    OUT_CHAR R1
-    ADD R0, #1
-    JMP LOOP
-EXIT: HALT
+    CALL PRINT_STRING

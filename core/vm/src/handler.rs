@@ -497,9 +497,9 @@ impl MyVM {
         self.registers.sp -= 1;
         self.memory
             .set(self.registers.sp, self.registers.pc as u8)?;
-        // self.registers.sp -= 1;
-        // self.memory
-        //     .set(self.registers.sp, (self.registers.pc >> 8) as u8)?;
+        self.registers.sp -= 1;
+        self.memory
+            .set(self.registers.sp, (self.registers.pc >> 8) as u8)?;
         // self.registers.sp -= 1;
         // self.memory
         //     .set(self.registers.sp, (self.registers.pc >> 16) as u8)?;
@@ -523,14 +523,14 @@ impl MyVM {
 
     pub fn ret(&mut self) -> Result<Delta, VMError> {
         let mut location: u32 = 0;
-        location |= *self.memory.get(self.registers.sp)? as u32;
-        self.registers.sp += 1;
-        // location |= (*self.memory.get(self.registers.sp)? as u32) << 8;
+        // location |= (*self.memory.get(self.registers.sp)? as u32) << 24;
         // self.registers.sp += 1;
         // location |= (*self.memory.get(self.registers.sp)? as u32) << 16;
         // self.registers.sp += 1;
-        // location |= (*self.memory.get(self.registers.sp)? as u32) << 24;
-        // self.registers.sp += 1;
+        location |= (*self.memory.get(self.registers.sp)? as u32) << 8;
+        self.registers.sp += 1;
+        location |= *self.memory.get(self.registers.sp)? as u32;
+        self.registers.sp += 1;
         self.registers.pc = location;
         Ok(Delta {
             registers: vec![],
