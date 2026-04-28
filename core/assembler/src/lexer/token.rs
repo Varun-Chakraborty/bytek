@@ -5,6 +5,7 @@ pub enum TokenType {
     Whitespace,
     Newline,
     Eof,
+    String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Copy, Eq, Hash)]

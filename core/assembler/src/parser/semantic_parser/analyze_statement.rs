@@ -107,8 +107,6 @@ impl SemanticParser {
                 .iter()
                 .fold(0, |acc, operand| acc + operand.bit_count + MODE_BIT_COUNT);
 
-        self.statement_counter += 1;
-
         let instr = Instruction {
             opcode: InstructionField {
                 value: opcode as u32,

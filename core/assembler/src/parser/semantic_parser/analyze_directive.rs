@@ -1,7 +1,7 @@
 use isa::WORD_SIZE;
 
 use super::super::super::render_error::{Diagnostic, render_error};
-use super::super::instruction::{RawBinary, Statement};
+use super::super::instruction::{RawBinary, Statement, OperandType};
 use super::{SemanticError, SemanticParser};
 
 impl SemanticParser {
@@ -9,7 +9,7 @@ impl SemanticParser {
         &mut self,
         statement: Statement,
         source_lines: &Vec<String>,
-    ) -> Result<RawBinary, SemanticError> {
+    ) -> Result<Vec<RawBinary>, SemanticError> {
         let directive = statement.directive.unwrap();
         let data = match directive.value.as_str() {
             "byte" => {
@@ -77,10 +77,62 @@ impl SemanticParser {
                     });
                 };
 
-                RawBinary {
+                vec![RawBinary {
                     value: value,
                     bit_count: 8,
+                }]
+            }
+            "ascii" => {
+                let data = match statement.operands {
+                    Some(operands) => {
+                        if operands.len() != 1 {
+                            return Err(SemanticError::ShapeDoesNotMatch {
+                                message: render_error(Diagnostic {
+                                    headline: "Directive .ascii must have exactly one operand"
+                                        .to_string(),
+                                    line: directive.loc.line,
+                                    column: directive.loc.column,
+                                    source_line: &source_lines[directive.loc.line as usize - 1],
+                                    help: None,
+                                }),
+                            });
+                        }
+                        &operands[0].clone()
+                    }
+                    None => {
+                        return Err(SemanticError::ShapeDoesNotMatch {
+                            message: render_error(Diagnostic {
+                                headline: "Directive .ascii must have exactly one operand"
+                                    .to_string(),
+                                line: directive.loc.line,
+                                column: directive.loc.column,
+                                source_line: &source_lines[directive.loc.line as usize - 1],
+                                help: None,
+                            }),
+                        });
+                    }
+                };
+
+                if data.operand_type != Some(OperandType::String) {
+                    return Err(SemanticError::ShapeDoesNotMatch {
+                        message: render_error(Diagnostic {
+                            headline: "Directive .ascii must have a string operand".to_string(),
+                            line: directive.loc.line,
+                            column: directive.loc.column,
+                            source_line: &source_lines[directive.loc.line as usize - 1],
+                            help: None,
+                        }),
+                    });
                 }
+
+                let data: Vec<RawBinary> = data.value.chars().map(|char| {
+                    RawBinary {
+                        value: char as u32,
+                        bit_count: 8,
+                    }
+                }).collect();
+
+                data
             }
             "align" => {
                 if let Some(operands) = statement.operands {
@@ -96,10 +148,10 @@ impl SemanticParser {
                         });
                     }
                 }
-                RawBinary {
+                vec![RawBinary {
                     value: 0,
                     bit_count: (8 - self.location_counter % 8) % 8,
-                }
+                }]
             }
             _ => {
                 return Err(SemanticError::UnknownDirective {
@@ -113,7 +165,6 @@ impl SemanticParser {
                 });
             }
         };
-        self.statement_counter += 1;
         Ok(data)
     }
 }

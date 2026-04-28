@@ -51,11 +51,15 @@ impl SemanticParser {
             if statement.identifier.is_some() {
                 let instr = self.analyze_statement(statement, source_lines)?;
                 self.location_counter += instr.size;
+                self.statement_counter += 1;
                 semantic_nodes.push(SemanticNode::Instruction(instr));
             } else if statement.directive.is_some() {
                 let data = self.analyze_directive(statement, source_lines)?;
-                self.location_counter += data.bit_count;
-                semantic_nodes.push(SemanticNode::RawBinary(data));
+                for data in data {
+                    self.location_counter += data.bit_count;
+                    self.statement_counter += 1;
+                    semantic_nodes.push(SemanticNode::RawBinary(data));
+                }
             }
         }
         if !self.tii.is_empty() {

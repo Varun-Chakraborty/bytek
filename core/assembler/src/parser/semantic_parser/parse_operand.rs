@@ -385,6 +385,24 @@ impl SemanticParser {
                             });
                         }
                     }
+                    OperandType::String => {
+                        return Err(SemanticError::ShapeDoesNotMatch {
+                            message: render_error(Diagnostic {
+                                headline: format!(
+                                    "This operand is not supposed to be a string"
+                                ),
+                                line: token.loc.line,
+                                column: token.loc.column,
+                                source_line: &source_lines[token.loc.line as usize - 1],
+                                help: Some(
+                                    format!(
+                                        "Refer to the instruction documentation for more info"
+                                    )
+                                    .as_str(),
+                                ),
+                            }),
+                        });
+                    }
                 }
             }
             None => panic!("Operand does not have a address mode"),

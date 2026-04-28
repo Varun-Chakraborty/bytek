@@ -6,6 +6,7 @@ use super::super::lexer::token::SourceLoc;
 pub enum OperandType {
     Immediate,
     IndirectMemory,
+    String,
     Unknown,
 }
 

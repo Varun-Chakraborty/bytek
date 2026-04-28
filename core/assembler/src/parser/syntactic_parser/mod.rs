@@ -113,7 +113,7 @@ impl SyntacticParser {
                         && value.as_str() == "."
                     {
                         state = DFAState::ExpectDirective;
-                    } else if state == DFAState::AfterOpcode || state == DFAState::ExpectOperand {
+                    } else if state == DFAState::AfterOpcode || state == DFAState::ExpectOperand || state == DFAState::AfterDirective {
                         if value == "#" {
                             state = DFAState::ExpectImmediate;
                         }
@@ -143,7 +143,7 @@ impl SyntacticParser {
                                         "Perhaps you meant to use comma(,) instead?"
                                     }
                                     DFAState::AfterDirective => {
-                                        "A directive name is expected after '.'"
+                                        "Directives must be followed by one or more operands"
                                     }
                                     _ => "",
                                 }),
@@ -197,6 +197,50 @@ impl SyntacticParser {
                             });
                         }
                         DFAState::Start => {}
+                        DFAState::ExpectDirective => {
+                            return Err(SyntacticError::UnexpectedToken {
+                                message: render_error(Diagnostic {
+                                    headline: "A directive name is expected after dot".to_string(),
+                                    line: source_loc.line,
+                                    source_line: &source_lines[source_loc.line as usize - 1],
+                                    column: source_loc.column,
+                                    help: None,
+                                }),
+                            });
+                        }
+                        DFAState::ExpectClosingSquareBracket => {
+                            return Err(SyntacticError::UnexpectedToken {
+                                message: render_error(Diagnostic {
+                                    headline: "A closing square bracket is expected".to_string(),
+                                    line: source_loc.line,
+                                    source_line: &source_lines[source_loc.line as usize - 1],
+                                    column: source_loc.column,
+                                    help: None,
+                                }),
+                            });
+                        }
+                        DFAState::ExpectImmediate => {
+                            return Err(SyntacticError::UnexpectedToken {
+                                message: render_error(Diagnostic {
+                                    headline: "An immediate value is expected".to_string(),
+                                    line: source_loc.line,
+                                    source_line: &source_lines[source_loc.line as usize - 1],
+                                    column: source_loc.column,
+                                    help: None,
+                                }),
+                            });
+                        }
+                        DFAState::ExpectIndirect => {
+                            return Err(SyntacticError::UnexpectedToken {
+                                message: render_error(Diagnostic {
+                                    headline: "An indirect value is expected".to_string(),
+                                    line: source_loc.line,
+                                    source_line: &source_lines[source_loc.line as usize - 1],
+                                    column: source_loc.column,
+                                    help: None,
+                                }),
+                            });
+                        }
                         _ => self.statements.push(statement),
                     }
                     return Ok(mem::take(&mut self.statements));
@@ -226,6 +270,24 @@ impl SyntacticParser {
                             });
                         }
                         _ => {}
+                    };
+                    tokens.next();
+                }
+                TokenType::String => {
+                    let value = current_token.value.clone().unwrap();
+                    match state {
+                        DFAState::AfterOpcode | DFAState::ExpectOperand | DFAState::AfterDirective => {
+                            statement.add_operand(value, source_loc, Some(OperandType::String));
+                        }
+                        _ => return Err(SyntacticError::UnexpectedToken {
+                            message: render_error(Diagnostic {
+                                headline: "Unexpected token".to_string(),
+                                line: source_loc.line,
+                                source_line: &source_lines[source_loc.line as usize - 1],
+                                column: source_loc.column,
+                                help: None,
+                            }),
+                        })
                     };
                     tokens.next();
                 }

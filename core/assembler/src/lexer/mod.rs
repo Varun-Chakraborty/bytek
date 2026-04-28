@@ -1,10 +1,16 @@
 pub mod token;
 
+use super::render_error::{Diagnostic, render_error};
 use self::token::{SourceLoc, Token, TokenStream, TokenType};
 use std::mem;
 
 #[derive(Debug, thiserror::Error)]
-pub enum LexerError {}
+pub enum LexerError {
+    #[error("{message}")]
+    InCompleteEscapeSequence { message: String },
+    #[error("{message}")]
+    InvalidEscapeSequence { message: String },
+}
 
 pub struct Lexer {
     tokens: TokenStream,
@@ -25,6 +31,14 @@ impl Lexer {
             token_loc: SourceLoc { line: 1, column: 1 },
             source_lines: Vec::new(),
         }
+    }
+
+    pub fn push_string(&mut self) {
+        self.tokens.push(Token {
+            token_type: TokenType::String,
+            value: Some(mem::take(&mut self.token)),
+            source_loc: mem::take(&mut self.token_loc),
+        });
     }
 
     pub fn push_identifier(&mut self) {
@@ -76,6 +90,8 @@ impl Lexer {
 
         // Tokenize
         let mut is_comment = false;
+        let mut is_string = false;
+        let mut escape_seq = false;
 
         for char in program.chars() {
             self.column += 1;
@@ -91,12 +107,60 @@ impl Lexer {
                 }
                 continue;
             }
+            if is_string {
+                if char == '"' {
+                    if escape_seq {
+                        return Err(LexerError::InCompleteEscapeSequence {
+                            message: render_error(Diagnostic {
+                                headline: "Incomplete escape sequence".to_string(),
+                                line: self.line,
+                                column: self.column,
+                                source_line: &self.source_lines[self.line as usize - 1],
+                                help: None,
+                            })
+                        });
+                    }
+                    is_string = false;
+                    self.push_string();
+                    continue;
+                }
+                if char == '\\' {
+                    escape_seq = true;
+                    continue;
+                }
+                if escape_seq {
+                    // push the character as escape sequence
+                    match char {
+                        'n' => self.token.push('\n'),
+                        't' => self.token.push('\t'),
+                        '0' => self.token.push('\0'),
+                        _ => return Err(LexerError::InvalidEscapeSequence {
+                            message: render_error(Diagnostic {
+                                headline: "Invalid escape sequence".to_string(),
+                                line: self.line,
+                                column: self.column,
+                                source_line: &self.source_lines[self.line as usize - 1],
+                                help: None,
+                            })
+                        }),
+                    }
+                    escape_seq = false;
+                    continue;
+                }
+                self.token.push(char);
+                continue;
+            }
             match char {
                 ':' | ',' | '+' | '(' | ')' | '&' | '.' | '#' | '[' | ']' => {
                     self.push_identifier();
                     self.token_loc.line = self.line;
                     self.token_loc.column = self.column;
                     self.push_symbol(char);
+                }
+                '"' => {
+                    is_string = true;
+                    self.token_loc.line = self.line;
+                    self.token_loc.column = self.column;
                 }
                 ';' => {
                     is_comment = true;
