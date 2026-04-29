@@ -1,6 +1,6 @@
 MAIN:
-    MOVEI R1, 2
-    MOVEI R2, 3
+    MOVER R1, #2
+    MOVER R2, #3
     CALL ADD
     CALL DOUBLE
     OUT R0
@@ -11,5 +11,5 @@ ADD:
     RET
 
 DOUBLE:
-    ADD R0, R0, R0
+    ADD R0, R0
     RET
