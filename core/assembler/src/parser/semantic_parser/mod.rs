@@ -193,7 +193,7 @@ mod tests {
                     operands[0],
                     InstructionField {
                         value: 0,
-                        bit_count: 2,
+                        bit_count: 3,
                         addressing_mode: Some(AddressingMode::Register)
                     }
                 );

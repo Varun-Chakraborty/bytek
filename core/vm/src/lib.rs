@@ -6,7 +6,7 @@ mod registers;
 use crate::instruction::{Instruction, InstructionError};
 use crate::memory::{Memory, MemoryError};
 use crate::registers::{RegisterError, Registers};
-use isa::{AddressingMode, MEM_BYTES, OptSpec, REG_COUNT};
+use isa::{MEM_BYTES, OptSpec, REG_COUNT};
 use logger::{LogTo, Logger, LoggerError};
 use std::{io, num::ParseIntError};
 
@@ -30,8 +30,8 @@ pub enum VMError {
     InvalidBinary,
     #[error("Error converting Vec to slice")]
     VecToSlice,
-    #[error("Invalid operand mode: {mode} with value: {value}")]
-    InvalidOperandMode { mode: AddressingMode, value: u32 },
+    #[error("Runtime error: {message}")]
+    RuntimeError{ message: String },
 }
 
 pub struct MyVM {
@@ -42,25 +42,10 @@ pub struct MyVM {
     pub logger: Logger,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum MemoryAccessType {
-    Read,
-    Write,
-}
-
-#[derive(Debug, Clone)]
-pub struct MemoryAccess {
-    pub addresses: Vec<u32>,
-    pub value: u8,
-    pub type_: MemoryAccessType,
-}
-
 #[derive(Debug, Clone)]
 pub struct ExecutionStep {
     pub instruction_str: String,
     pub address: u32,
-    pub changed_regs: Vec<String>,
-    pub memory_access: Option<MemoryAccess>,
     pub is_halted: bool,
 }
 
@@ -86,7 +71,7 @@ impl MyVM {
     }
 
     fn execute(&mut self, instr: Instruction) -> Result<ExecutionStep, VMError> {
-        let changes = match instr.get_operation_name().to_lowercase().as_str() {
+        match instr.get_operation_name().to_lowercase().as_str() {
             "halt" => Ok(self.halt()?),
             "in" => Ok(self.input(&instr)?),
             "out" => Ok(self.output(&instr)?),
@@ -112,6 +97,8 @@ impl MyVM {
             "pop" => Ok(self.pop(&instr)?),
             "call" => Ok(self.call(&instr)?),
             "ret" => Ok(self.ret()?),
+
+            "cmp" => Ok(self.cmp(&instr)?),
             _ => Err(VMError::NoImplementation(
                 instr.get_operation_name().to_string(),
             )),
@@ -120,8 +107,6 @@ impl MyVM {
         Ok(ExecutionStep {
             instruction_str: format!("{:?}", instr),
             address: self.registers.pc,
-            changed_regs: changes.registers,
-            memory_access: changes.memory_access,
             is_halted: self.registers.eof == self.registers.pc,
         })
     }

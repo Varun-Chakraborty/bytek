@@ -63,6 +63,6 @@ mod tests {
     fn test_assemble() {
         let mut assembler = MyAssembler::new().unwrap();
         let (binary, _) = assembler.assemble("MOVE:\nMOVER R0, 0").unwrap();
-        assert_eq!(binary, vec![20, 8, 0, 0, 0, 0, 22]);
+        assert_eq!(binary, vec![20, 4, 0, 0, 0, 0, 23]);
     }
 }

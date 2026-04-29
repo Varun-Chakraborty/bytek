@@ -4,3 +4,4 @@
 *.txt
 target
 logs
+.codex

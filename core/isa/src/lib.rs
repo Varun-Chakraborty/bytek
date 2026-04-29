@@ -1,4 +1,4 @@
-pub static REG_COUNT: u32 = 3;
+pub static REG_COUNT: u32 = 5;
 pub static MEM_BYTES: u32 = 256;
 pub static MEM_BITS: u32 = MEM_BYTES * 8;
 pub static WORD_SIZE: u32 = 8; // bits
@@ -93,12 +93,10 @@ impl OptSpec {
                 AddressingMode::Immediate,
             ],
         };
-        static VALUE: OperandSpec = OperandSpec {
+
+        static IMMEDIATE_OR_REGISTER: OperandSpec = OperandSpec {
             allowed_modes: &[
                 AddressingMode::Register,
-                AddressingMode::DirectData,
-                AddressingMode::Indirect,
-                AddressingMode::IndirectRegister,
                 AddressingMode::Immediate,
             ],
         };
@@ -113,12 +111,12 @@ impl OptSpec {
                 Operation::new("OUT_CHAR", vec![&REG]),
                 Operation::new("MOVER", vec![&REG, &NON_REGISTER_VALUE]),
                 Operation::new("MOVEM", vec![&REG, &NON_REGISTER_VALUE]),
-                Operation::new("ADD", vec![&REG, &REG, &VALUE]),
-                Operation::new("SUB", vec![&REG, &REG, &VALUE]),
-                Operation::new("MULT", vec![&REG, &REG, &VALUE]),
-                Operation::new("ADC", vec![&REG, &REG, &VALUE]),
-                Operation::new("SBC", vec![&REG, &REG, &VALUE]),
-                Operation::new("MULT_16", vec![&VALUE]),
+                Operation::new("ADD", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                Operation::new("SUB", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                Operation::new("MULT", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                Operation::new("ADC", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                Operation::new("SBC", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                Operation::new("MULT_16", vec![&IMMEDIATE_OR_REGISTER]),
                 Operation::new("JMP", vec![&MEM_C]),
                 Operation::new("JZ", vec![&MEM_C]),
                 Operation::new("JNZ", vec![&MEM_C]),
@@ -126,14 +124,13 @@ impl OptSpec {
                 Operation::new("POP", vec![&REG]),
                 Operation::new("CALL", vec![&MEM_C]),
                 Operation::new("RET", vec![]),
+                Operation::new("CMP", vec![&REG, &IMMEDIATE_OR_REGISTER]),
                 // Operation::new("AND", vec![&REG, &REG, &REG]),
                 // Operation::new("OR", vec![&REG, &REG, &REG]),
                 // Operation::new("XOR", vec![&REG, &REG, &REG]),
                 // Operation::new("NOT", vec![&REG]),
                 // Operation::new("SHL", vec![&REG]),
                 // Operation::new("SHR", vec![&REG]),
-                // Operation::new("CMP", vec![&REG, &REG]),
-                // Operation::new("CMPI", vec![&REG, &NON_REGISTER_VALUE]),
                 // Operation::new("JG", vec![&MEM_C]),
                 // Operation::new("JGE", vec![&MEM_C]),
                 // Operation::new("JL", vec![&MEM_C]),

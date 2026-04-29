@@ -40,7 +40,7 @@ The VM is an 8-bit machine with a compact bit-level instruction encoding.
 | Part | Shape | Notes |
 | --- | --- | --- |
 | Word size | 8 bits | Registers and memory cells store `u8` values. Some operations interpret those bytes as signed `i8` values. |
-| General registers | `R0` through `R2` | The register index is encoded in 2 bits, while the current machine exposes 3 registers. |
+| General registers | `R0` through `R4` | The register index is encoded in 3 bits, while the current machine exposes 5 registers. |
 | Memory | 256 cells | Data memory is addressed by 8-bit operands, so data addresses range from `0` to `255`. |
 | Program counter | Bit address | `pc` points to the next bit to decode, not just the next byte. |
 | Addressing-mode tag | 3 bits | Every encoded operand starts with a 3-bit addressing-mode field. |
@@ -52,7 +52,7 @@ Instruction decoding is driven by the shared `isa` crate:
 
 - Every instruction starts with a 6-bit opcode.
 - Non-empty operands begin with a 3-bit addressing-mode tag.
-- Register operands are 2 bits.
+- Register operands are 3 bits.
 - Data-memory operands are 8 bits.
 - Code-address operands are 11 bits because they target bit positions in the 256-byte program-memory space.
 - Immediate operands are 8 bits.
@@ -76,7 +76,7 @@ Execution follows the usual fetch-decode-execute loop:
 - `MyVM::new()` creates a VM with empty memory and registers.
 - `load_kernel()` loads `kernel.bin` and runs it.
 - `start()` currently calls `load_kernel()`.
-- `step()` executes a single instruction and returns an `ExecutionStep`.
+- `step()` executes a single instruction and returns an `ExecutionStep` with the decoded instruction text, resulting program-counter address, and halted status.
 - `run()` executes until the loaded program halts or reaches EOF.
 - `reset()` clears registers and memory.
 - `get_state()` returns a borrowed snapshot of registers and memory.
@@ -91,6 +91,7 @@ The VM currently dispatches:
 - Movement: `MOVER`, `MOVEM`
 - Arithmetic: `ADD`, `SUB`, `MULT`
 - Carry arithmetic: `ADC`, `SBC`
+- Comparison: `CMP`
 - 16-bit multiply helper: `MULT_16`
 - Control flow: `JMP`, `JZ`, `JNZ`, `CALL`, `RET`
 - Stack: `PUSH`, `POP`

@@ -13,7 +13,7 @@ It is the source of truth for:
 
 | Constant | Value | Meaning |
 | --- | ---: | --- |
-| `REG_COUNT` | `3` | Number of general-purpose registers exposed by the machine. |
+| `REG_COUNT` | `5` | Number of general-purpose registers exposed by the machine. |
 | `MEM_BYTES` | `256` | Number of addressable memory cells. |
 | `MEM_BITS` | `2048` | Total memory capacity in bits. |
 | `WORD_SIZE` | `8` | Word size in bits. |
@@ -25,11 +25,11 @@ It is the source of truth for:
 
 | Type | Width | Meaning |
 | --- | ---: | --- |
-| `Register` | 2 bits | General register operand. |
+| `Register` | 3 bits | General register operand. |
 | `DirectCode` | 11 bits | Bit address into program memory. |
 | `DirectData` | 8 bits | Data-memory address. |
 | `Indirect` | 8 bits | Memory address whose contents are dereferenced. |
-| `IndirectRegister` | 2 bits | Register-selected memory indirection. |
+| `IndirectRegister` | 3 bits | Register-selected memory indirection. |
 | `Immediate` | 8 bits | Literal 8-bit value. |
 
 ## Opcode Table
@@ -45,12 +45,12 @@ Opcodes are indexes in the operation table.
 | 4 | `OUT_CHAR` | register |
 | 5 | `MOVER` | register, non-register value |
 | 6 | `MOVEM` | register, non-register value |
-| 7 | `ADD` | register, register, value |
-| 8 | `SUB` | register, register, value |
-| 9 | `MULT` | register, register, value |
-| 10 | `ADC` | register, register, value |
-| 11 | `SBC` | register, register, value |
-| 12 | `MULT_16` | value |
+| 7 | `ADD` | register, register, immediate or register |
+| 8 | `SUB` | register, register, immediate or register |
+| 9 | `MULT` | register, register, immediate or register |
+| 10 | `ADC` | register, register, immediate or register |
+| 11 | `SBC` | register, register, immediate or register |
+| 12 | `MULT_16` | immediate or register |
 | 13 | `JMP` | direct code |
 | 14 | `JZ` | direct code |
 | 15 | `JNZ` | direct code |
@@ -58,6 +58,7 @@ Opcodes are indexes in the operation table.
 | 17 | `POP` | register |
 | 18 | `CALL` | direct code |
 | 19 | `RET` | none |
+| 20 | `CMP` | register, immediate or register |
 
 ## API Notes
 

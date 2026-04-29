@@ -83,11 +83,32 @@ JMP START
 
 .align
 
-MESSAGE:
+MESSAGE1:
 .ascii "Hello World\n\0"
+
+MESSAGE2:
+.ascii "Hello World\n\0"
+
+EQUAL_:
+.ascii "Equal\n\0"
+
+NOT_EQUAL_:
+.ascii "Not Equal\n\0"
 
 .include "stdlib.asm"
 
 START:
-    MOVER R0, #MESSAGE
+    MOVER R1, #MESSAGE1
+    MOVER R2, #MESSAGE2
+    CALL COMPARE_STRINGS
+    CMP R0, #1
+    JZ A
+    JNZ B
+A:
+    MOVER R0, #EQUAL_
     CALL PRINT_STRING
+    HALT
+B:
+    MOVER R0, #NOT_EQUAL_
+    CALL PRINT_STRING
+    HALT

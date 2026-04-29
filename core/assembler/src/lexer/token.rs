@@ -70,12 +70,4 @@ impl TokenStream {
     pub fn next(&mut self) {
         self.index += 1;
     }
-
-    pub fn remove(&mut self) -> Token {
-        self.tokens.remove(self.index)
-    }
-
-    pub fn reset(&mut self) {
-        self.index = 0;
-    }
 }

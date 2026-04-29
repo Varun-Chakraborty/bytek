@@ -67,6 +67,18 @@ Example:
 MOVE: MOVER R0, 0
 ```
 
+Arithmetic instructions such as `ADD`, `SUB`, `ADC`, `SBC`, and `MULT` are encoded as three-operand instructions. As a convenience, the semantic parser accepts two-operand forms and rewrites them so the first operand is also the destination:
+
+```asm
+ADD R0, #1
+```
+
+is normalized as:
+
+```asm
+ADD R0, R0, #1
+```
+
 Preprocessor statements currently supported:
 
 | Statement | Operand | Behavior |
