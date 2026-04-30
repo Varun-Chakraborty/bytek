@@ -28,6 +28,7 @@ cargo run -p vm
 
 `MyVM` owns:
 
+- `device`: the byte-oriented input/output device used by `IN` and `OUT`.
 - `registers`: general registers, flags, program counter, and execution metadata.
 - `memory`: 256 cells of 8-bit VM memory.
 - `opt_spec`: the opcode table from `isa`.
@@ -71,9 +72,26 @@ Execution follows the usual fetch-decode-execute loop:
 4. Update registers, flags, memory, and the program counter.
 5. Stop when the program counter reaches EOF.
 
+`IN` and `OUT` are byte-oriented. The default binary constructs `MyVM` with `ConsoleDevice`, which reads one byte from standard input and writes output bytes as characters to standard output.
+
+## Devices
+
+VM I/O is routed through the `Device` trait:
+
+```rust
+pub trait Device {
+    fn read_byte(&mut self) -> Result<u8, std::io::Error>;
+    fn write_byte(&mut self, byte: u8) -> Result<(), std::io::Error>;
+}
+```
+
+This keeps instruction execution independent from a specific terminal or host I/O implementation. `IN Rn` calls `read_byte()` and stores the returned byte in the target register. `OUT Rn` reads the target register and passes that byte to `write_byte()`.
+
+`ConsoleDevice` is the default device used by the VM binary. It reads one raw byte from standard input and writes bytes to standard output as characters. Tests or alternate frontends can provide a different `Device` implementation to capture output, feed scripted input, or connect the VM to another host interface.
+
 ## Public API
 
-- `MyVM::new()` creates a VM with empty memory and registers.
+- `MyVM::new(device)` creates a VM with empty memory, registers, and the provided I/O device.
 - `load_kernel()` loads `kernel.bin` and runs it.
 - `start()` currently calls `load_kernel()`.
 - `step()` executes a single instruction and returns an `ExecutionStep` with the decoded instruction text, resulting program-counter address, and halted status.
@@ -87,9 +105,9 @@ When `debug` is enabled, each decoded instruction is logged with the bit-address
 
 The VM currently dispatches:
 
-- Halt and I/O: `HALT`, `IN`, `OUT`, `OUT_16`, `OUT_CHAR`
+- Halt and I/O: `HALT`, `IN`, `OUT`
 - Movement: `MOVER`, `MOVEM`
-- Arithmetic: `ADD`, `SUB`, `MULT`
+- Arithmetic: `ADD`, `SUB`, `MULT`, `DIV`, `MOD`
 - Carry arithmetic: `ADC`, `SBC`
 - Comparison: `CMP`
 - 16-bit multiply helper: `MULT_16`

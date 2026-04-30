@@ -67,7 +67,7 @@ Example:
 MOVE: MOVER R0, 0
 ```
 
-Arithmetic instructions such as `ADD`, `SUB`, `ADC`, `SBC`, and `MULT` are encoded as three-operand instructions. As a convenience, the semantic parser accepts two-operand forms and rewrites them so the first operand is also the destination:
+Arithmetic instructions such as `ADD`, `SUB`, `MULT`, `DIV`, `MOD`, `ADC`, and `SBC` are encoded as three-operand instructions. As a convenience, the semantic parser accepts two-operand forms and rewrites them so the first operand is also the destination:
 
 ```asm
 ADD R0, #1
@@ -85,13 +85,24 @@ Preprocessor statements currently supported:
 | --- | --- | --- |
 | `.include` | one double-quoted `.asm` file path | Replaces the statement with the contents of `programs/<path>`. |
 
-For example, [`programs/kernel.asm`](../../programs/kernel.asm) can pull in shared assembly routines:
+For example, [`programs/kernel.asm`](../../programs/kernel.asm) can pull in the Bytek standard library:
 
 ```asm
 .include "stdlib.asm"
 ```
 
 Include paths must be double-quoted and end in `.asm`. The current implementation resolves them from the workspace `programs` directory, so assembler commands should be run from the repository root when using includes.
+
+Programs that include the standard library before their entrypoint should jump over it first, because execution starts at the first encoded instruction:
+
+```asm
+JMP START
+
+.include "stdlib.asm"
+
+START:
+    ; program code
+```
 
 Directives currently supported by the semantic parser:
 
@@ -110,6 +121,20 @@ String operands are accepted for directives such as `.ascii`:
 ```
 
 The lexer decodes `\n`, `\t`, and `\0` inside strings. Other escape sequences are rejected. Because `.ascii` emits 8-bit values, characters with scalar values above `255` fail during encoding. String operands are not valid instruction operands unless a future ISA operation explicitly supports them.
+
+## Standard Library
+
+[`programs/stdlib.asm`](../../programs/stdlib.asm) is the Bytek assembly standard library. It currently provides reusable I/O and string routines for assembly programs:
+
+| Routine | Inputs | Outputs | Preserved | Clobbers |
+| --- | --- | --- | --- | --- |
+| `PRINT_STRING` | `R1`: address of a null-terminated string | none | `R1` | `R3`, flags |
+| `COMPARE_STRINGS` | `R1`: first string address, `R2`: second string address | `R0`: `1` if equal, `0` otherwise | `R1`, `R2` | `R3`, `R4`, flags |
+| `STRLEN` | `R1`: address of a null-terminated string | `R0`: string length in bytes, excluding `\0` | `R1` | `R3`, flags |
+| `PRINT_INT` | `R1`: unsigned byte value to print in decimal | none | `R1` | `R3`, `R4`, flags |
+| `PRINTLN` | none | none | none | `R3` |
+
+`PRINT_INT` prints the byte value in `R1`, so values are limited to `0..255`.
 
 ## Output
 

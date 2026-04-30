@@ -1,7 +1,7 @@
 pub mod token;
 
-use super::render_error::{Diagnostic, render_error};
 use self::token::{SourceLoc, Token, TokenStream, TokenType};
+use super::render_error::{Diagnostic, render_error};
 use std::mem;
 
 #[derive(Debug, thiserror::Error)]
@@ -117,7 +117,7 @@ impl Lexer {
                                 column: self.column,
                                 source_line: &self.source_lines[self.line as usize - 1],
                                 help: None,
-                            })
+                            }),
                         });
                     }
                     is_string = false;
@@ -134,15 +134,17 @@ impl Lexer {
                         'n' => self.token.push('\n'),
                         't' => self.token.push('\t'),
                         '0' => self.token.push('\0'),
-                        _ => return Err(LexerError::InvalidEscapeSequence {
-                            message: render_error(Diagnostic {
-                                headline: "Invalid escape sequence".to_string(),
-                                line: self.line,
-                                column: self.column,
-                                source_line: &self.source_lines[self.line as usize - 1],
-                                help: None,
-                            })
-                        }),
+                        _ => {
+                            return Err(LexerError::InvalidEscapeSequence {
+                                message: render_error(Diagnostic {
+                                    headline: "Invalid escape sequence".to_string(),
+                                    line: self.line,
+                                    column: self.column,
+                                    source_line: &self.source_lines[self.line as usize - 1],
+                                    help: None,
+                                }),
+                            });
+                        }
                     }
                     escape_seq = false;
                     continue;

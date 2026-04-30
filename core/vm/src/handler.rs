@@ -1,9 +1,8 @@
 use isa::AddressingMode;
 
-use crate::{MyVM, VMError, instruction::Instruction};
-use std::io::{Write, stdin, stdout};
+use super::{MyVM, VMError, device::Device, instruction::Instruction};
 
-impl MyVM {
+impl<D: Device> MyVM<D> {
     pub fn halt(&mut self) -> Result<(), VMError> {
         self.registers.pc = self.registers.eof;
         Ok(())
@@ -12,39 +11,16 @@ impl MyVM {
     pub fn input(&mut self, instr: &Instruction) -> Result<(), VMError> {
         let operands = instr.get_operands();
         let register = &operands[0];
-        let mut input = String::new();
-        print!("Enter value for registers {}: ", register.value);
-        stdout().flush()?;
-        stdin().read_line(&mut input)?;
-        let input = input.trim().parse::<i8>()? as u8;
-        self.registers.set_general(register.value, input)?;
+        let byte = self.device.read_byte()?;
+        self.registers.set_general(register.value, byte)?;
         Ok(())
     }
 
-    pub fn output(&self, instr: &Instruction) -> Result<(), VMError> {
+    pub fn output(&mut self, instr: &Instruction) -> Result<(), VMError> {
         let operands = instr.get_operands();
         let register = &operands[0];
-        let value = *self.registers.get_general(register.value)? as i8;
-        println!("Output from registers {}: {value}", register.value);
-        stdout().flush()?;
-        Ok(())
-    }
-
-    pub fn output_16(&self) -> Result<(), VMError> {
-        let high_byte = *self.registers.get_general(1)? as u16;
-        let low_byte = *self.registers.get_general(0)? as u16;
-        let value = ((high_byte << 8) | low_byte) as i16;
-        println!("Combined output from registers 0 and 1: {value}");
-        stdout().flush()?;
-        Ok(())
-    }
-
-    pub fn output_char(&self, instr: &Instruction) -> Result<(), VMError> {
-        let operands = instr.get_operands();
-        let register = &operands[0];
-        let value = *self.registers.get_general(register.value)? as i8;
-        print!("{}", value as u8 as char);
-        stdout().flush()?;
+        let value = *self.registers.get_general(register.value)?;
+        self.device.write_byte(value)?;
         Ok(())
     }
 
@@ -60,7 +36,9 @@ impl MyVM {
                 let address = *self.registers.get_general(value.value)? as u32;
                 if address >= self.registers.memory_size {
                     return Err(VMError::RuntimeError {
-                        message: format!("Memory address {address} is out of range at instruction {instr}")
+                        message: format!(
+                            "Memory address {address} is out of range at instruction {instr}"
+                        ),
                     });
                 }
                 *self.memory.get(address)?
@@ -88,7 +66,9 @@ impl MyVM {
                 let address = *self.registers.get_general(memory.value)?;
                 if address as u32 >= self.registers.memory_size {
                     return Err(VMError::RuntimeError {
-                        message: format!("Memory address {address} is out of range at instruction {instr}")
+                        message: format!(
+                            "Memory address {address} is out of range at instruction {instr}"
+                        ),
                     });
                 }
                 address
@@ -242,6 +222,62 @@ impl MyVM {
         Ok(())
     }
 
+    pub fn div(&mut self, instr: &Instruction) -> Result<(), VMError> {
+        let operands = instr.get_operands();
+        let dest = &operands[0];
+        let operand1 = &operands[1];
+        let num1 = *self.registers.get_general(operand1.value)? as i16;
+        let operand2 = &operands[2];
+        let num2 = match operand2.mode {
+            AddressingMode::Immediate => operand2.value as i8 as i16,
+            AddressingMode::Register => *self.registers.get_general(operand2.value)? as i8 as i16,
+            _ => {
+                panic!("Invalid addressing mode");
+            }
+        };
+        if num2 == 0 {
+            return Err(VMError::RuntimeError {
+                message: format!("Division by zero at instruction {instr}"),
+            });
+        }
+        let quotient = num1 / num2;
+        self.registers.set_general(dest.value, quotient as u8)?;
+
+        self.registers.set_flag("zero", quotient == 0);
+        self.registers.set_flag("sign", quotient < 0);
+        self.registers.set_flag("overflow", quotient < 0);
+        self.registers.set_flag("carry", quotient < 0);
+        Ok(())
+    }
+
+    pub fn modulus(&mut self, instr: &Instruction) -> Result<(), VMError> {
+        let operands = instr.get_operands();
+        let dest = &operands[0];
+        let operand1 = &operands[1];
+        let num1 = *self.registers.get_general(operand1.value)? as i16;
+        let operand2 = &operands[2];
+        let num2 = match operand2.mode {
+            AddressingMode::Immediate => operand2.value as i8 as i16,
+            AddressingMode::Register => *self.registers.get_general(operand2.value)? as i8 as i16,
+            _ => {
+                panic!("Invalid addressing mode");
+            }
+        };
+        if num2 == 0 {
+            return Err(VMError::RuntimeError {
+                message: format!("Modulo by zero at instruction {instr}"),
+            });
+        }
+        let remainder = num1 % num2;
+        self.registers.set_general(dest.value, remainder as u8)?;
+
+        self.registers.set_flag("zero", remainder == 0);
+        self.registers.set_flag("sign", remainder < 0);
+        self.registers.set_flag("overflow", remainder < 0);
+        self.registers.set_flag("carry", remainder < 0);
+        Ok(())
+    }
+
     pub fn mult_16(&mut self, instr: &Instruction) -> Result<(), VMError> {
         let operands = instr.get_operands();
         let operand1 = &operands[0];
@@ -281,8 +317,8 @@ impl MyVM {
         let operands = instr.get_operands();
         let reg = &operands[0];
         let value = *self.memory.get(self.registers.sp)?;
-        self.registers.sp += 1;
         self.registers.set_general(reg.value, value)?;
+        self.registers.sp += 1;
         Ok(())
     }
 
@@ -345,7 +381,7 @@ impl MyVM {
     }
 
     pub fn cmp(&mut self, instr: &Instruction) -> Result<(), VMError> {
-    	let operands = instr.get_operands();
+        let operands = instr.get_operands();
         let operand1 = &operands[0];
         let num1 = *self.registers.get_general(operand1.value)? as i8;
         let operand2 = &operands[1];

@@ -130,7 +130,7 @@ impl Encoder {
             }
             result.push(byte);
         }
-        len.to_be_bytes().iter().for_each(|b| result.push(*b));
+        result.append(len.to_be_bytes().to_vec().as_mut());
         result
     }
 

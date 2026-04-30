@@ -62,20 +62,22 @@ impl Preprocessor {
                         });
                     }
 
-                    Ok(match std::fs::read_to_string(&format!("programs/{file_path}")) {
-                        Ok(file) => file,
-                        Err(e) => {
-                            return Err(PreprocessorError::IncludeError {
-                                message: render_error(Diagnostic {
-                                    headline: format!("Failed to read file: {}", e),
-                                    source_line: line,
-                                    line: (i + 1) as u32,
-                                    column: 1,
-                                    help: None,
-                                }),
-                            });
-                        }
-                    })
+                    Ok(
+                        match std::fs::read_to_string(&format!("programs/{file_path}")) {
+                            Ok(file) => file,
+                            Err(e) => {
+                                return Err(PreprocessorError::IncludeError {
+                                    message: render_error(Diagnostic {
+                                        headline: format!("Failed to read file: {}", e),
+                                        source_line: line,
+                                        line: (i + 1) as u32,
+                                        column: 1,
+                                        help: None,
+                                    }),
+                                });
+                            }
+                        },
+                    )
                 } else {
                     Ok(line.to_string())
                 }

@@ -95,20 +95,32 @@ EQUAL_:
 NOT_EQUAL_:
 .ascii "Not Equal\n\0"
 
+DATA:
+.byte 0
+
+STRING1:
+.ascii "Length of string is: \0"
+
 .include "stdlib.asm"
 
 START:
     MOVER R1, #MESSAGE1
+    CALL STRLEN
+    MOVEM R0, DATA
+    MOVER R1, #STRING1
+    CALL PRINT_STRING
+    MOVER R1, DATA
+    CALL PRINT_INT
+    CALL PRINTLN
+    MOVER R1, #MESSAGE1
     MOVER R2, #MESSAGE2
     CALL COMPARE_STRINGS
     CMP R0, #1
-    JZ A
-    JNZ B
+    JNZ A
+    MOVER R1, #EQUAL_
+    JMP EXIT
 A:
-    MOVER R0, #EQUAL_
-    CALL PRINT_STRING
-    HALT
-B:
-    MOVER R0, #NOT_EQUAL_
+    MOVER R1, #NOT_EQUAL_
+EXIT:
     CALL PRINT_STRING
     HALT

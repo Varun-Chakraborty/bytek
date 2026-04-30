@@ -108,7 +108,10 @@ mod tests {
         ])
         .unwrap();
 
-        assert_eq!(args.input_filepath, Some(String::from("programs/kernel.asm")));
+        assert_eq!(
+            args.input_filepath,
+            Some(String::from("programs/kernel.asm"))
+        );
         assert!(args.debug);
         assert!(args.pretty);
         assert_eq!(args.log_to, Some(String::from("file")));

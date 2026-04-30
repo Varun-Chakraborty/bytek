@@ -41,13 +41,13 @@ Opcodes are indexes in the operation table.
 | 0 | `HALT` | none |
 | 1 | `IN` | register |
 | 2 | `OUT` | register |
-| 3 | `OUT_16` | none |
-| 4 | `OUT_CHAR` | register |
-| 5 | `MOVER` | register, non-register value |
-| 6 | `MOVEM` | register, non-register value |
-| 7 | `ADD` | register, register, immediate or register |
-| 8 | `SUB` | register, register, immediate or register |
-| 9 | `MULT` | register, register, immediate or register |
+| 3 | `MOVER` | register, non-register value |
+| 4 | `MOVEM` | register, non-register value |
+| 5 | `ADD` | register, register, immediate or register |
+| 6 | `SUB` | register, register, immediate or register |
+| 7 | `MULT` | register, register, immediate or register |
+| 8 | `DIV` | register, register, immediate or register |
+| 9 | `MOD` | register, register, immediate or register |
 | 10 | `ADC` | register, register, immediate or register |
 | 11 | `SBC` | register, register, immediate or register |
 | 12 | `MULT_16` | immediate or register |

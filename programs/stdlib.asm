@@ -1,12 +1,20 @@
 PRINT_STRING:
-    MOVER R1, [R0]
+    PUSH R1
+LOOP1:
+    MOVER R3, [R1]
+    CMP R3, #0
     JZ EXIT_PRINT_STRING
-    OUT_CHAR R1
-    ADD R0, #1
-    JMP PRINT_STRING
-EXIT_PRINT_STRING: RET
+    OUT R3
+    ADD R1, #1
+    JMP LOOP1
+EXIT_PRINT_STRING:
+    POP R1
+    RET
 
 COMPARE_STRINGS:
+    PUSH R1
+    PUSH R2
+LOOP2:
     MOVER R3, [R1]
     MOVER R4, [R2]
     CMP R3, R4
@@ -15,10 +23,57 @@ COMPARE_STRINGS:
     JZ EQUAL
     ADD R1, #1
     ADD R2, #1
-    JMP COMPARE_STRINGS
+    JMP LOOP2
 NOT_EQUAL:
     MOVER R0, #0
-    RET
+    JMP RETURN
 EQUAL:
     MOVER R0, #1
+RETURN:
+    POP R2
+    POP R1
+    RET
+
+STRLEN:
+    PUSH R1
+    MOVER R0, #0
+LOOP3:
+    MOVER R3, [R1]
+    CMP R3, #0
+    JZ EXIT_STRLEN
+    ADD R1, #1
+    ADD R0, #1
+    JMP LOOP3
+EXIT_STRLEN:
+    POP R1
+    RET
+
+PRINT_INT:
+    PUSH R1
+    CMP R1, #0
+    JNZ PRINT_INT_NONZERO
+    MOVER R3, #48
+    OUT R3
+    POP R1
+    RET
+PRINT_INT_NONZERO:
+    MOVER R4, #0
+LOOP4:
+    MOD R3, R1, #10
+    ADD R3, #48
+    PUSH R3
+    ADD R4, #1
+    DIV R1, R1, #10
+    JNZ LOOP4
+LOOP5:
+    POP R3
+    OUT R3
+    SUB R4, #1
+    JNZ LOOP5
+    POP R1
+    RET
+
+PRINTLN:
+    MOVER R3, #10
+    OUT R3
     RET

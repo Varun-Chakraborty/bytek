@@ -1,7 +1,7 @@
-use vm::MyVM;
+use vm::{MyVM, device::ConsoleDevice};
 
 pub fn main() {
-    let mut vm = match MyVM::new() {
+    let mut vm = match MyVM::new(ConsoleDevice) {
         Ok(vm) => vm,
         Err(err) => {
             println!("Failed to create VM:\n\t{}", err);

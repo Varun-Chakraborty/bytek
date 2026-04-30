@@ -1,11 +1,15 @@
+pub mod device;
 mod handler;
 mod instruction;
 mod memory;
 mod registers;
 
-use crate::instruction::{Instruction, InstructionError};
-use crate::memory::{Memory, MemoryError};
-use crate::registers::{RegisterError, Registers};
+use self::{
+    device::Device,
+    instruction::{Instruction, InstructionError},
+    memory::{Memory, MemoryError},
+    registers::{RegisterError, Registers},
+};
 use isa::{MEM_BYTES, OptSpec, REG_COUNT};
 use logger::{LogTo, Logger, LoggerError};
 use std::{io, num::ParseIntError};
@@ -31,10 +35,11 @@ pub enum VMError {
     #[error("Error converting Vec to slice")]
     VecToSlice,
     #[error("Runtime error: {message}")]
-    RuntimeError{ message: String },
+    RuntimeError { message: String },
 }
 
-pub struct MyVM {
+pub struct MyVM<D: Device> {
+    pub device: D,
     pub registers: Registers<u8>,
     pub memory: Memory<u8>,
     pub debug: bool,
@@ -55,9 +60,10 @@ pub struct VMState<'a> {
     pub memory: &'a Memory<u8>,
 }
 
-impl MyVM {
-    pub fn new() -> Result<Self, VMError> {
+impl<D: Device> MyVM<D> {
+    pub fn new(device: D) -> Result<Self, VMError> {
         Ok(Self {
+            device,
             opt_spec: OptSpec::clone(),
             memory: Memory::new(MEM_BYTES),
             registers: Registers::new(REG_COUNT, MEM_BYTES),
@@ -75,8 +81,6 @@ impl MyVM {
             "halt" => Ok(self.halt()?),
             "in" => Ok(self.input(&instr)?),
             "out" => Ok(self.output(&instr)?),
-            "out_16" => Ok(self.output_16()?),
-            "out_char" => Ok(self.output_char(&instr)?),
 
             "mover" => Ok(self.mover(&instr)?),
             "movem" => Ok(self.movem(&instr)?),
@@ -84,6 +88,8 @@ impl MyVM {
             "add" => Ok(self.add(&instr)?),
             "sub" => Ok(self.sub(&instr)?),
             "mult" => Ok(self.mult(&instr)?),
+            "div" => Ok(self.div(&instr)?),
+            "mod" => Ok(self.modulus(&instr)?),
 
             "adc" => Ok(self.adc(&instr)?),
             "sbc" => Ok(self.sbc(&instr)?),

@@ -87,8 +87,7 @@ impl SemanticParser {
                 new_statement.operands = if let Some(operands) = new_statement.operands {
                     match &statement.identifier {
                         Some(identifier) => match identifier.value.as_str() {
-                            "ADD" | "ADDI" | "ADC" | "ADCI" | "SUB" | "SUBI" | "SBC" | "SBCI"
-                            | "MULT" | "MULTI" | "AND" | "OR" | "XOR" => {
+                            "ADD" | "ADC" | "SUB" | "SBC" | "MULT" | "DIV" | "MOD" => {
                                 if operands.len() == 2 {
                                     Some(vec![
                                         operands[0].clone(),
@@ -182,7 +181,7 @@ mod tests {
                 assert_eq!(
                     instr.opcode,
                     InstructionField {
-                        value: 5,
+                        value: 3,
                         bit_count: 6,
                         addressing_mode: None
                     }

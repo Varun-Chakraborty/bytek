@@ -1,7 +1,7 @@
 use isa::WORD_SIZE;
 
 use super::super::super::render_error::{Diagnostic, render_error};
-use super::super::instruction::{RawBinary, Statement, OperandType};
+use super::super::instruction::{OperandType, RawBinary, Statement};
 use super::{SemanticError, SemanticParser};
 
 impl SemanticParser {
@@ -125,12 +125,14 @@ impl SemanticParser {
                     });
                 }
 
-                let data: Vec<RawBinary> = data.value.chars().map(|char| {
-                    RawBinary {
+                let data: Vec<RawBinary> = data
+                    .value
+                    .chars()
+                    .map(|char| RawBinary {
                         value: char as u32,
                         bit_count: 8,
-                    }
-                }).collect();
+                    })
+                    .collect();
 
                 data
             }

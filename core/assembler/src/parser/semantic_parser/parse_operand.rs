@@ -57,22 +57,22 @@ impl SemanticParser {
                             let bit_count = AddressingMode::DirectData.bit_count();
                             if let Some(location) = self.symtab.get(&token.value) {
                                 // handling labels
-                                if self.location_counter % 8 != 0 {
+                                if location % 8 != 0 {
                                     return Err(SemanticError::InvalidLabel {
-                                    message: render_error(Diagnostic {
-                                        headline: format!(
-                                            "'{}' does not resolve to a byte aligned address",
-                                            token.value
-                                        ),
-                                        line: token.loc.line,
-                                        column: token.loc.column,
-                                        source_line: &source_lines[token.loc.line as usize - 1],
-                                        help: Some(
-                                            format!("Data addresses must be byte-aligned (multiples of 8 bits), but this resolves to bit offset {}", location)
-                                            .as_str(),
-                                        ),
-                                    }),
-                                });
+                                        message: render_error(Diagnostic {
+                                            headline: format!(
+                                                "'{}' does not resolve to a byte aligned address",
+                                                token.value
+                                            ),
+                                            line: token.loc.line,
+                                            column: token.loc.column,
+                                            source_line: &source_lines[token.loc.line as usize - 1],
+                                            help: Some(
+                                                format!("Data addresses must be byte-aligned (multiples of 8 bits), but this resolves to bit offset {}", location)
+                                                .as_str(),
+                                            ),
+                                        }),
+                                    });
                                 }
                                 return Ok(InstructionField {
                                     value: location / 8,
@@ -388,17 +388,13 @@ impl SemanticParser {
                     OperandType::String => {
                         return Err(SemanticError::ShapeDoesNotMatch {
                             message: render_error(Diagnostic {
-                                headline: format!(
-                                    "This operand is not supposed to be a string"
-                                ),
+                                headline: format!("This operand is not supposed to be a string"),
                                 line: token.loc.line,
                                 column: token.loc.column,
                                 source_line: &source_lines[token.loc.line as usize - 1],
                                 help: Some(
-                                    format!(
-                                        "Refer to the instruction documentation for more info"
-                                    )
-                                    .as_str(),
+                                    format!("Refer to the instruction documentation for more info")
+                                        .as_str(),
                                 ),
                             }),
                         });

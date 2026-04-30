@@ -116,7 +116,7 @@ mod tests {
                 assert_eq!(
                     instruction.opcode,
                     InstructionField {
-                        value: 5,
+                        value: 3,
                         bit_count: 6,
                         addressing_mode: None
                     }

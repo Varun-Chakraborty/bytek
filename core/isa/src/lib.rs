@@ -95,10 +95,7 @@ impl OptSpec {
         };
 
         static IMMEDIATE_OR_REGISTER: OperandSpec = OperandSpec {
-            allowed_modes: &[
-                AddressingMode::Register,
-                AddressingMode::Immediate,
-            ],
+            allowed_modes: &[AddressingMode::Register, AddressingMode::Immediate],
         };
 
         Self {
@@ -107,13 +104,13 @@ impl OptSpec {
                 Operation::new("HALT", vec![]),
                 Operation::new("IN", vec![&REG]),
                 Operation::new("OUT", vec![&REG]),
-                Operation::new("OUT_16", vec![]),
-                Operation::new("OUT_CHAR", vec![&REG]),
                 Operation::new("MOVER", vec![&REG, &NON_REGISTER_VALUE]),
                 Operation::new("MOVEM", vec![&REG, &NON_REGISTER_VALUE]),
                 Operation::new("ADD", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
                 Operation::new("SUB", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
                 Operation::new("MULT", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                Operation::new("DIV", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                Operation::new("MOD", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
                 Operation::new("ADC", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
                 Operation::new("SBC", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
                 Operation::new("MULT_16", vec![&IMMEDIATE_OR_REGISTER]),
