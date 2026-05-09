@@ -45,6 +45,7 @@ impl Encoder {
         &mut self,
         instruction: Instruction,
     ) -> Result<(), EncoderError> {
+        self.delimiter_table.add_address(self.location_counter);
         let bits = instruction.opcode.bit_count;
         let binary = self.generate_binary(instruction.opcode.value, bits as usize)?;
         for bit in binary.chars() {
@@ -91,6 +92,7 @@ impl Encoder {
     }
 
     pub fn generate_binary_for_data(&mut self, raw_binary: RawBinary) -> Result<(), EncoderError> {
+        self.delimiter_table.add_address(self.location_counter);
         let data = raw_binary.value;
         let width = raw_binary.bit_count as usize;
         let binary = self.generate_binary(data as u32, width as usize)?;

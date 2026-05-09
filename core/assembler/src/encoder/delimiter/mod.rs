@@ -18,6 +18,10 @@ impl DelimiterTable {
         }
     }
 
+    pub fn add_address(&mut self, address: u32) {
+        self.append(format!("0x{:03}: ", address), address as usize);
+    }
+
     pub fn append(&mut self, symbol: String, address: usize) {
         self.table.push(Delimiter { symbol, address });
     }
