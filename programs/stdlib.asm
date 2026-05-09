@@ -25,10 +25,10 @@ LOOP2:
     ADD R2, #1
     JMP LOOP2
 NOT_EQUAL:
-    MOVER R0, #0
+    MOVER R0, #1
     JMP RETURN
 EQUAL:
-    MOVER R0, #1
+    MOVER R0, #0
 RETURN:
     POP R2
     POP R1
@@ -63,7 +63,8 @@ LOOP4:
     ADD R3, #48
     PUSH R3
     ADD R4, #1
-    DIV R1, R1, #10
+    DIV R1, #10
+    CMP R1, #0
     JNZ LOOP4
 LOOP5:
     POP R3

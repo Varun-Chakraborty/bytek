@@ -24,7 +24,7 @@ impl<T: Copy + Default + PrimInt + Debug> Memory<T> {
     }
 
     pub fn set(&mut self, cell: u32, value: T) -> Result<(), MemoryError> {
-        if cell > self.mem.len() as u32 - 1 {
+        if cell > self.size() - 1 {
             return Err(MemoryError::OutOfBounds);
         }
         self.mem[cell as usize] = value;
@@ -32,7 +32,7 @@ impl<T: Copy + Default + PrimInt + Debug> Memory<T> {
     }
 
     pub fn get(&self, cell: u32) -> Result<&T, MemoryError> {
-        if cell > self.mem.len() as u32 - 1 {
+        if cell > self.size() - 1 {
             return Err(MemoryError::OutOfBounds);
         }
         Ok(self

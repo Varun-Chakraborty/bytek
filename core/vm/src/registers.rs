@@ -102,10 +102,6 @@ impl<T: Copy + Default + PrimInt + Debug + std::fmt::Display> Registers<T> {
         }
     }
 
-    pub fn increment_pc(&mut self) {
-        self.pc += 1;
-    }
-
     pub fn reset(&mut self) {
         self.general_regs.reset();
         self.flags = Flags {

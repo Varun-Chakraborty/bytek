@@ -140,7 +140,6 @@ impl<D: Device> MyVM<D> {
     }
 
     pub fn reset(&mut self) {
-        self.registers.pc = 0;
         self.registers.reset();
         self.memory.reset();
     }
@@ -168,7 +167,7 @@ impl<D: Device> MyVM<D> {
 
         for byte in kernel_binary {
             self.memory.set(self.registers.pc, byte)?;
-            self.registers.increment_pc();
+            self.registers.pc += 1;
         }
 
         self.registers.pc = 0;

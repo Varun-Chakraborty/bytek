@@ -5,8 +5,6 @@ mod preprocessor;
 mod render_error;
 pub mod writer;
 
-use thiserror::Error;
-
 use self::{
     encoder::{Encoder, EncoderError, delimiter::DelimiterTable},
     lexer::{Lexer, LexerError},
@@ -14,7 +12,7 @@ use self::{
     preprocessor::{Preprocessor, PreprocessorError},
 };
 
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum AssemblerError {
     #[error("I/O error:\n{0}")]
     Io(#[from] std::io::Error),

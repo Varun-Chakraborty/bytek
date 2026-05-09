@@ -1,4 +1,4 @@
-use isa::WORD_SIZE;
+use isa::DATA_BITS;
 
 use super::super::super::render_error::{Diagnostic, render_error};
 use super::super::instruction::{OperandType, RawBinary, Statement};
@@ -62,7 +62,7 @@ impl SemanticParser {
                         }),
                     })?;
 
-                if value >= 1 << WORD_SIZE {
+                if value >= 1 << DATA_BITS {
                     return Err(SemanticError::ShapeDoesNotMatch {
                         message: render_error(Diagnostic {
                             headline: format!("Token '{}' is too large", data.value),
@@ -70,7 +70,7 @@ impl SemanticParser {
                             column: data.loc.column,
                             source_line: &source_lines[data.loc.line as usize - 1],
                             help: Some(
-                                format!("Constant operand must be less than {}", 1 << WORD_SIZE)
+                                format!("Constant operand must be less than {}", 1 << DATA_BITS)
                                     .as_str(),
                             ),
                         }),

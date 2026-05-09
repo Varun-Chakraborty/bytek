@@ -1,8 +1,8 @@
 pub static REG_COUNT: u32 = 5;
 pub static MEM_BYTES: u32 = 256;
 pub static MEM_BITS: u32 = MEM_BYTES * 8;
-pub static WORD_SIZE: u32 = 8; // bits
 pub static MODE_BIT_COUNT: u32 = 3;
+pub static DATA_BITS: u32 = 8;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Copy, Default)]
 pub enum AddressingMode {
@@ -36,7 +36,7 @@ impl AddressingMode {
             AddressingMode::DirectData => 32 - (MEM_BYTES - 1).leading_zeros(),
             AddressingMode::Indirect => 32 - (MEM_BYTES - 1).leading_zeros(),
             AddressingMode::IndirectRegister => 32 - (REG_COUNT - 1).leading_zeros(),
-            AddressingMode::Immediate => WORD_SIZE,
+            AddressingMode::Immediate => DATA_BITS,
         }
     }
 
