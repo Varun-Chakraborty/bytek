@@ -1,7 +1,25 @@
-IN R2               ; Input the number
-MOVER R0, #1        ; Move 1 to R0
-LOOP: MULT_16 R2    ; Support of labels; Multiply value at R0 (default 1 for the first iteration) with input
-SUB R2, #1         ; Subtract 1 from input
-JNZ LOOP            ; Jump to loop if input is not 0
-OUT_16              ; Output the result
-HALT                ; END of program
+JMP START
+
+.align
+
+PROMPT:
+.ascii "Enter a number: \0"
+.include "stdlib.asm"
+
+START:
+    MOVER R1, #PROMPT
+    CALL PRINT_STRING
+    IN R2
+    SUB R2, #48         ; convert ASCII to decimal
+    MOVER R0, #1
+    CMP R2, #0
+    JZ DONE
+LOOP:
+    MULT R0, R2
+    SUB R2, #1
+    JNZ LOOP
+DONE:
+    ADD R1, R0, #0
+    CALL PRINT_INT
+    CALL PRINTLN
+    HALT

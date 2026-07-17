@@ -14,9 +14,9 @@ It is the source of truth for:
 | Constant | Value | Meaning |
 | --- | ---: | --- |
 | `REG_COUNT` | `5` | Number of general-purpose registers exposed by the machine. |
-| `MEM_BYTES` | `256` | Number of addressable memory cells. |
-| `MEM_BITS` | `2048` | Total memory capacity in bits. |
-| `WORD_SIZE` | `8` | Word size in bits. |
+| `MEM_BYTES` | `65536` | Number of addressable memory cells. |
+| `MEM_BITS` | `524288` | Total memory capacity in bits. |
+| `DATA_BITS` | `8` | Width of data that can be stored in one memory cell/register. |
 | `MODE_BIT_COUNT` | `3` | Width of the encoded addressing-mode tag. |
 
 ## Operand Types
@@ -26,9 +26,9 @@ It is the source of truth for:
 | Type | Width | Meaning |
 | --- | ---: | --- |
 | `Register` | 3 bits | General register operand. |
-| `DirectCode` | 11 bits | Bit address into program memory. |
-| `DirectData` | 8 bits | Data-memory address. |
-| `Indirect` | 8 bits | Memory address whose contents are dereferenced. |
+| `DirectCode` | 19 bits | Bit address into program memory. |
+| `DirectData` | 16 bits | Data-memory address. |
+| `Indirect` | 16 bits | Memory address whose contents are dereferenced. |
 | `IndirectRegister` | 3 bits | Register-selected memory indirection. |
 | `Immediate` | 8 bits | Literal 8-bit value. |
 

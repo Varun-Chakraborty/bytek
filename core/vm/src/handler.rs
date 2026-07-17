@@ -308,34 +308,34 @@ impl<D: Device> MyVM<D> {
         let operands = instr.get_operands();
         let reg = &operands[0];
         let value = *self.registers.get_general(reg.value)?;
-        self.registers.sp -= 1;
         self.memory.set(self.registers.sp, value)?;
+        self.registers.sp -= 1;
         Ok(())
     }
 
     pub fn pop(&mut self, instr: &Instruction) -> Result<(), VMError> {
         let operands = instr.get_operands();
         let reg = &operands[0];
+        self.registers.sp += 1;
         let value = *self.memory.get(self.registers.sp)?;
         self.registers.set_general(reg.value, value)?;
-        self.registers.sp += 1;
         Ok(())
     }
 
     pub fn call(&mut self, instr: &Instruction) -> Result<(), VMError> {
         let operands = instr.get_operands();
-        self.registers.sp -= 1;
         self.memory
             .set(self.registers.sp, self.registers.pc as u8)?;
         self.registers.sp -= 1;
         self.memory
             .set(self.registers.sp, (self.registers.pc >> 8) as u8)?;
-        // self.registers.sp -= 1;
-        // self.memory
-        //     .set(self.registers.sp, (self.registers.pc >> 16) as u8)?;
-        // self.registers.sp -= 1;
+        self.registers.sp -= 1;
+        self.memory
+            .set(self.registers.sp, (self.registers.pc >> 16) as u8)?;
+        self.registers.sp -= 1;
         // self.memory
         //     .set(self.registers.sp, (self.registers.pc >> 24) as u8)?;
+        // self.registers.sp -= 1;
         let address = &operands[0];
         self.registers.pc = address.value;
         Ok(())
@@ -343,14 +343,14 @@ impl<D: Device> MyVM<D> {
 
     pub fn ret(&mut self) -> Result<(), VMError> {
         let mut location: u32 = 0;
+        // self.registers.sp += 1;
         // location |= (*self.memory.get(self.registers.sp)? as u32) << 24;
-        // self.registers.sp += 1;
-        // location |= (*self.memory.get(self.registers.sp)? as u32) << 16;
-        // self.registers.sp += 1;
+        self.registers.sp += 1;
+        location |= (*self.memory.get(self.registers.sp)? as u32) << 16;
+        self.registers.sp += 1;
         location |= (*self.memory.get(self.registers.sp)? as u32) << 8;
         self.registers.sp += 1;
         location |= *self.memory.get(self.registers.sp)? as u32;
-        self.registers.sp += 1;
         self.registers.pc = location;
         Ok(())
     }

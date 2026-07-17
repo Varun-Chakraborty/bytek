@@ -1,5 +1,5 @@
 pub static REG_COUNT: u32 = 5;
-pub static MEM_BYTES: u32 = 256;
+pub static MEM_BYTES: u32 = 65536;
 pub static MEM_BITS: u32 = MEM_BYTES * 8;
 pub static MODE_BIT_COUNT: u32 = 3;
 pub static DATA_BITS: u32 = 8;
@@ -85,6 +85,13 @@ impl OptSpec {
         static MEM_C: OperandSpec = OperandSpec {
             allowed_modes: &[AddressingMode::DirectCode],
         };
+        static VALUE: OperandSpec = OperandSpec {
+            allowed_modes: &[
+                AddressingMode::Register,
+                AddressingMode::DirectData,
+                AddressingMode::Immediate,
+            ],
+        };
         static NON_REGISTER_VALUE: OperandSpec = OperandSpec {
             allowed_modes: &[
                 AddressingMode::DirectData,
@@ -104,7 +111,7 @@ impl OptSpec {
                 Operation::new("HALT", vec![]),
                 Operation::new("IN", vec![&REG]),
                 Operation::new("OUT", vec![&REG]),
-                Operation::new("MOVER", vec![&REG, &NON_REGISTER_VALUE]),
+                Operation::new("MOVER", vec![&REG, &VALUE]),
                 Operation::new("MOVEM", vec![&REG, &NON_REGISTER_VALUE]),
                 Operation::new("ADD", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
                 Operation::new("SUB", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),

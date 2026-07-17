@@ -55,7 +55,7 @@ impl<T: Copy + Default + PrimInt + Debug + std::fmt::Display> Registers<T> {
                 overflow: false,
                 carry: false,
             },
-            sp: memory_size,
+            sp: memory_size - 1,
             pc: 0,
             eof: 0,
             memory_size,
@@ -110,7 +110,7 @@ impl<T: Copy + Default + PrimInt + Debug + std::fmt::Display> Registers<T> {
             overflow: false,
             carry: false,
         };
-        self.sp = self.memory_size;
+        self.sp = self.memory_size - 1;
         self.pc = 0;
         self.eof = 0;
     }
