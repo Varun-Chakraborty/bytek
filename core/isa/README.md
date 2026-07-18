@@ -41,24 +41,25 @@ Opcodes are indexes in the operation table.
 | 0 | `HALT` | none |
 | 1 | `IN` | register |
 | 2 | `OUT` | register |
-| 3 | `MOVER` | register, non-register value |
-| 4 | `MOVEM` | register, non-register value |
+| 3 | `MOVER` | register, value |
+| 4 | `MOVEM` | register, memory value |
 | 5 | `ADD` | register, register, immediate or register |
 | 6 | `SUB` | register, register, immediate or register |
-| 7 | `MULT` | register, register, immediate or register |
-| 8 | `DIV` | register, register, immediate or register |
-| 9 | `MOD` | register, register, immediate or register |
-| 10 | `ADC` | register, register, immediate or register |
-| 11 | `SBC` | register, register, immediate or register |
-| 12 | `MULT_16` | immediate or register |
-| 13 | `JMP` | direct code |
-| 14 | `JZ` | direct code |
-| 15 | `JNZ` | direct code |
-| 16 | `PUSH` | register |
-| 17 | `POP` | register |
-| 18 | `CALL` | direct code |
-| 19 | `RET` | none |
-| 20 | `CMP` | register, immediate or register |
+| 7 | `ADC` | register, register, immediate or register |
+| 8 | `SBC` | register, register, immediate or register |
+| 9 | `JMP` | direct code |
+| 10 | `JZ` | direct code |
+| 11 | `JNZ` | direct code |
+| 12 | `PUSH` | register |
+| 13 | `POP` | register |
+| 14 | `CALL` | direct code |
+| 15 | `RET` | none |
+| 16 | `CMP` | register, immediate or register |
+| 17 | `SHL` | register |
+| 18 | `SHR` | register |
+| 19 | `AND` | register, register, immediate or register |
+| 20 | `OR` | register, register, immediate or register |
+| 21 | `XOR` | register, register, immediate or register |
 
 ## API Notes
 
@@ -68,5 +69,6 @@ Opcodes are indexes in the operation table.
 - The operand groups used in `OptSpec::clone()` currently distinguish between:
   - register-only operands,
   - direct code addresses,
-  - non-register values,
-  - and general values that may also be registers.
+  - general values (register, direct data, indirect, indirect register, immediate),
+  - memory values (direct data, indirect, indirect register — no immediate),
+  - and immediate-or-register operands.

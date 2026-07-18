@@ -15,7 +15,7 @@ impl Device for ConsoleDevice {
     }
 
     fn write_byte(&mut self, byte: u8) -> Result<(), std::io::Error> {
-        print!("{}", byte as char);
+        std::io::stdout().write(&[byte])?;
         std::io::stdout().flush()?;
         Ok(())
     }

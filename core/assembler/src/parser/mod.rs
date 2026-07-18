@@ -140,7 +140,7 @@ mod tests {
                     }
                 );
             }
-            _ => panic!("Unexpected semantic node"),
+            _ => unreachable!("Unexpected semantic node"),
         }
     }
 }

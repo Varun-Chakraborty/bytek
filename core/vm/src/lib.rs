@@ -87,14 +87,8 @@ impl<D: Device> MyVM<D> {
 
             "add" => Ok(self.add(&instr)?),
             "sub" => Ok(self.sub(&instr)?),
-            "mult" => Ok(self.mult(&instr)?),
-            "div" => Ok(self.div(&instr)?),
-            "mod" => Ok(self.modulus(&instr)?),
-
             "adc" => Ok(self.adc(&instr)?),
             "sbc" => Ok(self.sbc(&instr)?),
-
-            "mult_16" => Ok(self.mult_16(&instr)?),
 
             "jmp" => Ok(self.jmp(&instr)?),
             "jz" => Ok(self.jz(&instr)?),
@@ -105,6 +99,11 @@ impl<D: Device> MyVM<D> {
             "ret" => Ok(self.ret()?),
 
             "cmp" => Ok(self.cmp(&instr)?),
+            "shl" => Ok(self.shl(&instr)?),
+            "shr" => Ok(self.shr(&instr)?),
+            "and" => Ok(self.and(&instr)?),
+            "or" => Ok(self.or(&instr)?),
+            "xor" => Ok(self.xor(&instr)?),
             _ => Err(VMError::NoImplementation(
                 instr.get_operation_name().to_string(),
             )),

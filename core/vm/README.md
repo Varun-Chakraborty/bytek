@@ -47,7 +47,7 @@ The VM is an 8-bit machine with a compact bit-level instruction encoding.
 | Addressing-mode tag | 3 bits | Every encoded operand starts with a 3-bit addressing-mode field. |
 | EOF | Bit address | Loaded programs carry their effective bit length, and execution stops when `pc` reaches `eof`. |
 | Stack pointer | Memory cell address | `sp` starts at `MEM_BYTES`, one past the last valid memory cell, and grows downward for `PUSH`, `POP`, `CALL`, and `RET`. The first pushed value lands at address `65535`. |
-| Flags | `zero`, `sign`, `overflow`, `carry` | Arithmetic and movement instructions update condition flags used by conditional jumps. |
+| Flags | `zero`, `sign`, `overflow`, `carry` | Arithmetic, comparison, bitwise, and shift instructions update condition flags used by conditional jumps. |
 
 Instruction decoding is driven by the shared `isa` crate:
 
@@ -107,10 +107,11 @@ The VM currently dispatches:
 
 - Halt and I/O: `HALT`, `IN`, `OUT`
 - Movement: `MOVER`, `MOVEM`
-- Arithmetic: `ADD`, `SUB`, `MULT`, `DIV`, `MOD`
+- Arithmetic: `ADD`, `SUB`
 - Carry arithmetic: `ADC`, `SBC`
 - Comparison: `CMP`
-- 16-bit multiply helper: `MULT_16`
+- Bitwise: `AND`, `OR`, `XOR`
+- Shifts: `SHL`, `SHR`
 - Control flow: `JMP`, `JZ`, `JNZ`, `CALL`, `RET`
 - Stack: `PUSH`, `POP`
 

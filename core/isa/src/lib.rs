@@ -48,7 +48,7 @@ impl AddressingMode {
             3 => AddressingMode::Indirect,
             4 => AddressingMode::IndirectRegister,
             5 => AddressingMode::Immediate,
-            _ => panic!("Invalid addressing mode"),
+            _ => unreachable!("Invalid addressing mode"),
         }
     }
 }
@@ -89,15 +89,16 @@ impl OptSpec {
             allowed_modes: &[
                 AddressingMode::Register,
                 AddressingMode::DirectData,
+                AddressingMode::Indirect,
+                AddressingMode::IndirectRegister,
                 AddressingMode::Immediate,
             ],
         };
-        static NON_REGISTER_VALUE: OperandSpec = OperandSpec {
+        static MEMORY_VALUE: OperandSpec = OperandSpec {
             allowed_modes: &[
                 AddressingMode::DirectData,
                 AddressingMode::Indirect,
                 AddressingMode::IndirectRegister,
-                AddressingMode::Immediate,
             ],
         };
 
@@ -112,15 +113,11 @@ impl OptSpec {
                 Operation::new("IN", vec![&REG]),
                 Operation::new("OUT", vec![&REG]),
                 Operation::new("MOVER", vec![&REG, &VALUE]),
-                Operation::new("MOVEM", vec![&REG, &NON_REGISTER_VALUE]),
+                Operation::new("MOVEM", vec![&REG, &MEMORY_VALUE]),
                 Operation::new("ADD", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
                 Operation::new("SUB", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
-                Operation::new("MULT", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
-                Operation::new("DIV", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
-                Operation::new("MOD", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
                 Operation::new("ADC", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
                 Operation::new("SBC", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
-                Operation::new("MULT_16", vec![&IMMEDIATE_OR_REGISTER]),
                 Operation::new("JMP", vec![&MEM_C]),
                 Operation::new("JZ", vec![&MEM_C]),
                 Operation::new("JNZ", vec![&MEM_C]),
@@ -129,12 +126,15 @@ impl OptSpec {
                 Operation::new("CALL", vec![&MEM_C]),
                 Operation::new("RET", vec![]),
                 Operation::new("CMP", vec![&REG, &IMMEDIATE_OR_REGISTER]),
-                // Operation::new("AND", vec![&REG, &REG, &REG]),
-                // Operation::new("OR", vec![&REG, &REG, &REG]),
-                // Operation::new("XOR", vec![&REG, &REG, &REG]),
+                Operation::new("SHL", vec![&REG]),
+                Operation::new("SHR", vec![&REG]),
+                Operation::new("AND", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                Operation::new("OR", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                Operation::new("XOR", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                // Operation::new("MULT", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                // Operation::new("DIV", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
+                // Operation::new("MOD", vec![&REG, &REG, &IMMEDIATE_OR_REGISTER]),
                 // Operation::new("NOT", vec![&REG]),
-                // Operation::new("SHL", vec![&REG]),
-                // Operation::new("SHR", vec![&REG]),
                 // Operation::new("JG", vec![&MEM_C]),
                 // Operation::new("JGE", vec![&MEM_C]),
                 // Operation::new("JL", vec![&MEM_C]),

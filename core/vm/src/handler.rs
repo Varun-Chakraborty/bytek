@@ -30,6 +30,7 @@ impl<D: Device> MyVM<D> {
         let value = &operands[1];
         let value = match value.mode {
             AddressingMode::Immediate => value.value as u8,
+            AddressingMode::Register => *self.registers.get_general(value.value)?,
             AddressingMode::DirectData => *self.memory.get(value.value)?,
             AddressingMode::Indirect => *self.memory.get(*self.memory.get(value.value)? as u32)?,
             AddressingMode::IndirectRegister => {
@@ -43,15 +44,9 @@ impl<D: Device> MyVM<D> {
                 }
                 *self.memory.get(address)?
             }
-            _ => {
-                panic!("Invalid addressing mode");
-            }
+            _ => unreachable!("Invalid addressing mode"),
         };
         self.registers.set_general(register.value, value)?;
-        self.registers.set_flag("zero", value == 0);
-        self.registers.set_flag("sign", (value & (1 << 7)) != 0);
-        self.registers.set_flag("carry", value & 0b1000_0000 != 0);
-        self.registers.set_flag("overflow", false);
         Ok(())
     }
 
@@ -73,16 +68,10 @@ impl<D: Device> MyVM<D> {
                 }
                 address
             }
-            _ => {
-                panic!("Invalid addressing mode");
-            }
+            _ => unreachable!("Invalid addressing mode"),
         } as u32;
         let value = *self.registers.get_general(register.value)?;
         self.memory.set(memory, value)?;
-        self.registers.set_flag("zero", value == 0);
-        self.registers.set_flag("sign", (value & (1 << 7)) != 0);
-        self.registers.set_flag("carry", value & 0b1000_0000 != 0);
-        self.registers.set_flag("overflow", false);
         Ok(())
     }
 
@@ -96,9 +85,7 @@ impl<D: Device> MyVM<D> {
         let num2 = match operand2.mode {
             AddressingMode::Immediate => operand2.value as u8,
             AddressingMode::Register => *self.registers.get_general(operand2.value)?,
-            _ => {
-                panic!("Invalid addressing mode");
-            }
+            _ => unreachable!("Invalid addressing mode"),
         };
         let sum_16 = num1 as u16 + num2 as u16;
         let sum_8 = sum_16 as i8;
@@ -122,9 +109,7 @@ impl<D: Device> MyVM<D> {
         let num2 = match operand2.mode {
             AddressingMode::Immediate => operand2.value as u8,
             AddressingMode::Register => *self.registers.get_general(operand2.value)?,
-            _ => {
-                panic!("Invalid addressing mode");
-            }
+            _ => unreachable!("Invalid addressing mode"),
         };
         let sum_16 = num1 as u16 + num2 as u16 + self.registers.get_flag("carry") as u16;
         let sum_8 = sum_16 as i8;
@@ -148,9 +133,7 @@ impl<D: Device> MyVM<D> {
         let num2 = match operand2.mode {
             AddressingMode::Immediate => operand2.value as u8,
             AddressingMode::Register => *self.registers.get_general(operand2.value)?,
-            _ => {
-                panic!("Invalid addressing mode");
-            }
+            _ => unreachable!("Invalid addressing mode"),
         };
         let diff_16 = num1 as u16 + 256 - num2 as u16;
         let diff_8 = diff_16 as i8;
@@ -174,9 +157,7 @@ impl<D: Device> MyVM<D> {
         let num2 = match operand2.mode {
             AddressingMode::Immediate => operand2.value as u8,
             AddressingMode::Register => *self.registers.get_general(operand2.value)?,
-            _ => {
-                panic!("Invalid addressing mode");
-            }
+            _ => unreachable!("Invalid addressing mode"),
         };
         let diff_16 = num1 as u16 + 256 - num2 as u16 - self.registers.get_flag("carry") as u16;
         let diff_8 = diff_16 as i8;
@@ -191,116 +172,6 @@ impl<D: Device> MyVM<D> {
             ((num1 ^ num2) & (num1 ^ diff_8 as u8)) & (1 << 7) != 0,
         );
         self.registers.set_general(dest.value, diff_8 as u8)?;
-        Ok(())
-    }
-
-    pub fn mult(&mut self, instr: &Instruction) -> Result<(), VMError> {
-        let operands = instr.get_operands();
-        let dest = &operands[0];
-        let operand1 = &operands[1];
-        let num1 = *self.registers.get_general(operand1.value)? as i8 as i16;
-        let operand2 = &operands[2];
-        let num2 = match operand2.mode {
-            AddressingMode::Immediate => operand2.value as i8 as i16,
-            AddressingMode::Register => *self.registers.get_general(operand2.value)? as i8 as i16,
-            _ => {
-                panic!("Invalid addressing mode");
-            }
-        };
-        let product = num1 * num2;
-
-        let lowbyte = product as u8;
-        let highbyte = (product >> 8) as u8;
-
-        self.registers.set_general(dest.value, lowbyte)?;
-        self.registers.set_general(dest.value + 1, highbyte)?;
-
-        self.registers.set_flag("zero", product == 0);
-        self.registers.set_flag("sign", product < 0);
-        self.registers.set_flag("overflow", highbyte != 0);
-        self.registers.set_flag("carry", highbyte != 0);
-        Ok(())
-    }
-
-    pub fn div(&mut self, instr: &Instruction) -> Result<(), VMError> {
-        let operands = instr.get_operands();
-        let dest = &operands[0];
-        let operand1 = &operands[1];
-        let num1 = *self.registers.get_general(operand1.value)? as i16;
-        let operand2 = &operands[2];
-        let num2 = match operand2.mode {
-            AddressingMode::Immediate => operand2.value as i8 as i16,
-            AddressingMode::Register => *self.registers.get_general(operand2.value)? as i8 as i16,
-            _ => {
-                panic!("Invalid addressing mode");
-            }
-        };
-        if num2 == 0 {
-            return Err(VMError::RuntimeError {
-                message: format!("Division by zero at instruction {instr}"),
-            });
-        }
-        let quotient = num1 / num2;
-        self.registers.set_general(dest.value, quotient as u8)?;
-
-        self.registers.set_flag("zero", quotient == 0);
-        self.registers.set_flag("sign", quotient < 0);
-        self.registers.set_flag("overflow", quotient < 0);
-        self.registers.set_flag("carry", quotient < 0);
-        Ok(())
-    }
-
-    pub fn modulus(&mut self, instr: &Instruction) -> Result<(), VMError> {
-        let operands = instr.get_operands();
-        let dest = &operands[0];
-        let operand1 = &operands[1];
-        let num1 = *self.registers.get_general(operand1.value)? as i16;
-        let operand2 = &operands[2];
-        let num2 = match operand2.mode {
-            AddressingMode::Immediate => operand2.value as i8 as i16,
-            AddressingMode::Register => *self.registers.get_general(operand2.value)? as i8 as i16,
-            _ => {
-                panic!("Invalid addressing mode");
-            }
-        };
-        if num2 == 0 {
-            return Err(VMError::RuntimeError {
-                message: format!("Modulo by zero at instruction {instr}"),
-            });
-        }
-        let remainder = num1 % num2;
-        self.registers.set_general(dest.value, remainder as u8)?;
-
-        self.registers.set_flag("zero", remainder == 0);
-        self.registers.set_flag("sign", remainder < 0);
-        self.registers.set_flag("overflow", remainder < 0);
-        self.registers.set_flag("carry", remainder < 0);
-        Ok(())
-    }
-
-    pub fn mult_16(&mut self, instr: &Instruction) -> Result<(), VMError> {
-        let operands = instr.get_operands();
-        let operand1 = &operands[0];
-        let num1 = match operand1.mode {
-            AddressingMode::Immediate => operand1.value as i8 as i16,
-            AddressingMode::Register => *self.registers.get_general(operand1.value)? as i8 as i16,
-            _ => {
-                panic!("Invalid addressing mode");
-            }
-        };
-        let num2 = (((*self.registers.get_general(1)? as i8 as u16) << 8)
-            | *self.registers.get_general(0)? as u16) as i16;
-        let product = num1 * num2;
-        let highbyte = (product >> 8) as u8;
-        let lowbyte = product as u8;
-
-        self.registers.set_general(0, lowbyte)?;
-        self.registers.set_general(1, highbyte)?;
-
-        self.registers.set_flag("zero", product == 0);
-        self.registers.set_flag("sign", product < 0);
-        self.registers.set_flag("overflow", highbyte != 0);
-        self.registers.set_flag("carry", highbyte != 0);
         Ok(())
     }
 
@@ -383,79 +254,192 @@ impl<D: Device> MyVM<D> {
     pub fn cmp(&mut self, instr: &Instruction) -> Result<(), VMError> {
         let operands = instr.get_operands();
         let operand1 = &operands[0];
-        let num1 = *self.registers.get_general(operand1.value)? as i8;
+        let num1 = *self.registers.get_general(operand1.value)?;
         let operand2 = &operands[1];
         let num2 = match operand2.mode {
-            AddressingMode::Immediate => operand2.value as i8,
-            AddressingMode::Register => *self.registers.get_general(operand2.value)? as i8,
+            AddressingMode::Immediate => operand2.value as u8,
+            AddressingMode::Register => *self.registers.get_general(operand2.value)?,
             _ => {
                 panic!("Invalid addressing mode");
             }
         };
-        let (diff, carry) = (num1).overflowing_sub(num2);
-        self.registers.set_flag("sign", diff < 0);
-        self.registers.set_flag("zero", diff == 0);
-        self.registers.set_flag("carry", carry);
-        self.registers
-            .set_flag("overflow", ((num1 ^ num2) & (num1 ^ diff)) & (1 << 7) != 0);
+        let diff_16 = num1 as u16 + 256 - num2 as u16;
+        let diff_8 = diff_16 as i8;
+        self.registers.set_flag("zero", diff_8 == 0);
+        self.registers.set_flag("sign", diff_8 < 0);
+        self.registers.set_flag("carry", num1 < num2);
+        self.registers.set_flag(
+            "overflow",
+            ((num1 ^ num2) & (num1 ^ diff_8 as u8)) & (1 << 7) != 0,
+        );
         Ok(())
     }
 
-    // pub fn and(&mut self, instr: &Instruction) -> Result<Delta, VMError> {
+    pub fn shl(&mut self, instr: &Instruction) -> Result<(), VMError> {
+        let operands = instr.get_operands();
+        let operand1 = &operands[0];
+        let value = *self.registers.get_general(operand1.value)?;
+        self.registers.set_flag("carry", (value & (1 << 7)) != 0);
+        let value = value << 1;
+        self.registers.set_flag("zero", value == 0);
+        self.registers.set_flag("sign", (value & (1 << 7)) != 0);
+        self.registers.set_flag("overflow", false);
+        self.registers.set_general(operand1.value, value)?;
+        Ok(())
+    }
+
+    pub fn shr(&mut self, instr: &Instruction) -> Result<(), VMError> {
+        let operands = instr.get_operands();
+        let operand1 = &operands[0];
+        let value = *self.registers.get_general(operand1.value)?;
+        self.registers.set_flag("carry", (value & 1) != 0);
+        let value = value >> 1;
+        self.registers.set_flag("zero", value == 0);
+        self.registers.set_flag("sign", (value & (1 << 7)) != 0);
+        self.registers.set_flag("overflow", false);
+        self.registers.set_general(operand1.value, value)?;
+        Ok(())
+    }
+
+    pub fn and(&mut self, instr: &Instruction) -> Result<(), VMError> {
+        let operands = instr.get_operands();
+        let dest = &operands[0];
+        let operand1 = &operands[1];
+        let num1 = *self.registers.get_general(operand1.value)?;
+        let operand2 = &operands[2];
+        let num2 = match operand2.mode {
+            AddressingMode::Immediate => operand2.value as u8,
+            AddressingMode::Register => *self.registers.get_general(operand2.value)?,
+            _ => unreachable!("Invalid addressing mode"),
+        };
+        let product = num1 & num2;
+        self.registers.set_flag("zero", product == 0);
+        self.registers.set_flag("sign", (product & (1 << 7)) != 0);
+        self.registers.set_flag("overflow", false);
+        self.registers.set_flag("carry", false);
+        self.registers.set_general(dest.value, product)?;
+        Ok(())
+    }
+
+    pub fn or(&mut self, instr: &Instruction) -> Result<(), VMError> {
+        let operands = instr.get_operands();
+        let dest = &operands[0];
+        let operand1 = &operands[1];
+        let num1 = *self.registers.get_general(operand1.value)?;
+        let operand2 = &operands[2];
+        let num2 = match operand2.mode {
+            AddressingMode::Immediate => operand2.value as u8,
+            AddressingMode::Register => *self.registers.get_general(operand2.value)?,
+            _ => unreachable!("Invalid addressing mode"),
+        };
+        let product = num1 | num2;
+        self.registers.set_flag("zero", product == 0);
+        self.registers.set_flag("sign", (product & (1 << 7)) != 0);
+        self.registers.set_flag("overflow", false);
+        self.registers.set_flag("carry", false);
+        self.registers.set_general(dest.value, product)?;
+        Ok(())
+    }
+
+    pub fn xor(&mut self, instr: &Instruction) -> Result<(), VMError> {
+        let operands = instr.get_operands();
+        let dest = &operands[0];
+        let operand1 = &operands[1];
+        let num1 = *self.registers.get_general(operand1.value)?;
+        let operand2 = &operands[2];
+        let num2 = match operand2.mode {
+            AddressingMode::Immediate => operand2.value as u8,
+            AddressingMode::Register => *self.registers.get_general(operand2.value)?,
+            _ => unreachable!("Invalid addressing mode"),
+        };
+        let product = num1 ^ num2;
+        self.registers.set_flag("zero", product == 0);
+        self.registers.set_flag("sign", (product & (1 << 7)) != 0);
+        self.registers.set_flag("overflow", false);
+        self.registers.set_flag("carry", false);
+        self.registers.set_general(dest.value, product)?;
+        Ok(())
+    }
+
+    // pub fn mult(&mut self, instr: &Instruction) -> Result<(), VMError> {
     //     let operands = instr.get_operands();
     //     let dest = &operands[0];
-    //     let num1 = *self.registers.get_general(operands[1])?;
-    //     let num2 = *self.registers.get_general(operands[2])?;
-    //     let product = num1 & num2;
+    //     let operand1 = &operands[1];
+    //     let num1 = *self.registers.get_general(operand1.value)? as i8 as i16;
+    //     let operand2 = &operands[2];
+    //     let num2 = match operand2.mode {
+    //         AddressingMode::Immediate => operand2.value as i8 as i16,
+    //         AddressingMode::Register => *self.registers.get_general(operand2.value)? as i8 as i16,
+    //         _ => unreachable!("Invalid addressing mode")
+    //     };
+    //     let product = num1 * num2;
+
+    //     let lowbyte = product as u8;
+    //     let highbyte = (product >> 8) as u8;
+
+    //     self.registers.set_general(dest.value, lowbyte)?;
+    //     self.registers.set_general(dest.value + 1, highbyte)?;
+
     //     self.registers.set_flag("zero", product == 0);
-    //     self.registers.set_flag("sign", (product & (1 << 7)) != 0);
-    //     self.registers.set_flag("overflow", false);
-    //     self.registers.set_flag("carry", false);
-    //     self.registers.set_general(dest, product)?;
-    //     Ok(Delta {
-    //         registers: vec![],
-    //         flags: vec![],
-    //         memory_access: None,
-    //     })
+    //     self.registers.set_flag("sign", product < 0);
+    //     self.registers.set_flag("overflow", highbyte != 0);
+    //     self.registers.set_flag("carry", highbyte != 0);
+    //     Ok(())
     // }
 
-    // pub fn or(&mut self, instr: &Instruction) -> Result<Delta, VMError> {
-    //	   let operands = instr.get_operands();
+    // pub fn div(&mut self, instr: &Instruction) -> Result<(), VMError> {
+    //     let operands = instr.get_operands();
     //     let dest = &operands[0];
-    //     let num1 = *self.registers.get_general(operands[1])?;
-    //     let num2 = *self.registers.get_general(operands[2])?;
-    //     let product = num1 | num2;
-    //     self.registers.set_flag("zero", product == 0);
-    //     self.registers.set_flag("sign", (product & (1 << 7)) != 0);
-    //     self.registers.set_flag("overflow", false);
-    //     self.registers.set_flag("carry", false);
-    //     self.registers.set_general(dest, product)?;
-    //     Ok(Delta {
-    //         registers: vec![],
-    //         flags: vec![],
-    //         memory_access: None,
-    //     })
+    //     let operand1 = &operands[1];
+    //     let num1 = *self.registers.get_general(operand1.value)? as i16;
+    //     let operand2 = &operands[2];
+    //     let num2 = match operand2.mode {
+    //         AddressingMode::Immediate => operand2.value as i8 as i16,
+    //         AddressingMode::Register => *self.registers.get_general(operand2.value)? as i8 as i16,
+    //         _ => unreachable!("Invalid addressing mode")
+    //     };
+    //     if num2 == 0 {
+    //         return Err(VMError::RuntimeError {
+    //             message: format!("Division by zero at instruction {instr}"),
+    //         });
+    //     }
+    //     let quotient = num1 / num2;
+    //     self.registers.set_general(dest.value, quotient as u8)?;
+
+    //     self.registers.set_flag("zero", quotient == 0);
+    //     self.registers.set_flag("sign", quotient < 0);
+    //     self.registers.set_flag("overflow", quotient < 0);
+    //     self.registers.set_flag("carry", quotient < 0);
+    //     Ok(())
     // }
 
-    // pub fn xor(&mut self, instr: &Instruction) -> Result<Delta, VMError> {
-    //	   let operands = instr.get_operands();
+    // pub fn modulus(&mut self, instr: &Instruction) -> Result<(), VMError> {
+    //     let operands = instr.get_operands();
     //     let dest = &operands[0];
-    //     let num1 = *self.registers.get_general(operands[1])?;
-    //     let num2 = *self.registers.get_general(operands[2])?;
-    //     let product = num1 ^ num2;
-    //     self.registers.set_flag("zero", product == 0);
-    //     self.registers.set_flag("sign", (product & (1 << 7)) != 0);
-    //     self.registers.set_flag("overflow", false);
-    //     self.registers.set_flag("carry", false);
-    //     self.registers.set_general(dest, product)?;
-    //     Ok(Delta {
-    //         registers: vec![],
-    //         flags: vec![],
-    //         memory_access: None,
-    //     })
+    //     let operand1 = &operands[1];
+    //     let num1 = *self.registers.get_general(operand1.value)? as i16;
+    //     let operand2 = &operands[2];
+    //     let num2 = match operand2.mode {
+    //         AddressingMode::Immediate => operand2.value as i8 as i16,
+    //         AddressingMode::Register => *self.registers.get_general(operand2.value)? as i8 as i16,
+    //         _ => unreachable!("Invalid addressing mode")
+    //     };
+    //     if num2 == 0 {
+    //         return Err(VMError::RuntimeError {
+    //             message: format!("Modulo by zero at instruction {instr}"),
+    //         });
+    //     }
+    //     let remainder = num1 % num2;
+    //     self.registers.set_general(dest.value, remainder as u8)?;
+
+    //     self.registers.set_flag("zero", remainder == 0);
+    //     self.registers.set_flag("sign", remainder < 0);
+    //     self.registers.set_flag("overflow", remainder < 0);
+    //     self.registers.set_flag("carry", remainder < 0);
+    //     Ok(())
     // }
 
-    // pub fn not(&mut self, instr: &Instruction) -> Result<Delta, VMError> {
+    // pub fn not(&mut self, instr: &Instruction) -> Result<(), VMError> {
     //	   let operands = instr.get_operands();
     //     let dest = &operands[0];
     //     let num1 = *self.registers.get_general(operands[1])?;
@@ -465,46 +449,6 @@ impl<D: Device> MyVM<D> {
     //     self.registers.set_flag("overflow", false);
     //     self.registers.set_flag("carry", false);
     //     self.registers.set_general(dest, product)?;
-    //     Ok(Delta {
-    //         registers: vec![],
-    //         flags: vec![],
-    //         memory_access: None,
-    //     })
-    // }
-
-    // pub fn shl(&mut self, instr: &Instruction) -> Result<Delta, VMError> {
-    // 	   let operands = instr.get_operands();
-    //     let reg = &operands[0];
-    //     let value = *self.registers.get_general(reg)?;
-    //     self.registers.set_flag("carry", (value & (1 << 7)) != 0);
-    //     let shifted_value = value << 1;
-    //     self.registers.set_flag("zero", shifted_value == 0);
-    //     self.registers
-    //         .set_flag("sign", (shifted_value & (1 << 7)) != 0);
-    //     self.registers
-    //         .set_flag("overflow", ((shifted_value ^ value) & (1 << 7)) != 0);
-    //     self.registers.set_general(operands[0], shifted_value)?;
-    //     Ok(Delta {
-    //         registers: vec![],
-    //         flags: vec![],
-    //         memory_access: None,
-    //     })
-    // }
-
-    // pub fn shr(&mut self, instr: &Instruction) -> Result<Delta, VMError> {
-    //	   let operands = instr.get_operands();
-    //     let reg = &operands[0];
-    //     let value = *self.registers.get_general(reg)? as i8;
-    //     self.registers.set_flag("carry", (value & 1) != 0);
-    //     let value = value >> 1;
-    //     self.registers.set_flag("zero", value == 0);
-    //     self.registers.set_flag("sign", (value & (1 << 7)) != 0);
-    //     self.registers.set_flag("overflow", false);
-    //     self.registers.set_general(operands[0], value as u8)?;
-    //     Ok(Delta {
-    //         registers: vec![],
-    //         flags: vec![],
-    //         memory_access: None,
-    //     })
+    //     Ok(())
     // }
 }

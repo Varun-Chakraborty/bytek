@@ -88,7 +88,7 @@ impl<T: Copy + Default + PrimInt + Debug + std::fmt::Display> Registers<T> {
             "sign" => self.flags.sign = value,
             "overflow" => self.flags.overflow = value,
             "carry" => self.flags.carry = value,
-            _ => panic!("Invalid flag: {}", flag),
+            _ => unreachable!("Invalid flag: {}", flag),
         }
     }
 
@@ -98,7 +98,7 @@ impl<T: Copy + Default + PrimInt + Debug + std::fmt::Display> Registers<T> {
             "sign" => self.flags.sign,
             "overflow" => self.flags.overflow,
             "carry" => self.flags.carry,
-            _ => panic!("Invalid flag: {}", flag),
+            _ => unreachable!("Invalid flag: {}", flag),
         }
     }
 

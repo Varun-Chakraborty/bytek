@@ -308,8 +308,8 @@ mod tests {
     use crate::{
         lexer::token::{SourceLoc, Token, TokenStream, TokenType},
         parser::{
-            syntactic_parser::SyntacticParser,
             instruction::{OperandType, StatementField},
+            syntactic_parser::SyntacticParser,
         },
     };
 
