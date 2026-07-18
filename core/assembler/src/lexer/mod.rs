@@ -1,7 +1,7 @@
 pub mod token;
 
 use self::token::{SourceLoc, Token, TokenStream, TokenType};
-use super::render_error::{Diagnostic, render_error};
+use crate::render_error::{Diagnostic, render_error};
 use std::mem;
 
 #[derive(Debug, thiserror::Error)]
@@ -203,7 +203,7 @@ impl Lexer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::lexer::{Lexer, SourceLoc, TokenType};
 
     #[test]
     fn test_lexer() {

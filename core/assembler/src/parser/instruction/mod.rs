@@ -1,6 +1,6 @@
 use isa::AddressingMode;
 
-use super::super::lexer::token::SourceLoc;
+use crate::lexer::token::SourceLoc;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum OperandType {

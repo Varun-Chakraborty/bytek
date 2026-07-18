@@ -1,4 +1,4 @@
-use super::render_error::{Diagnostic, render_error};
+use crate::render_error::{Diagnostic, render_error};
 
 #[derive(Debug, thiserror::Error)]
 pub enum PreprocessorError {

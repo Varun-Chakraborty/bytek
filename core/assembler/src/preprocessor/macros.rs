@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{
+use crate::{
     lexer::token::{Token, TokenStream, TokenType},
     render_error::{Diagnostic, render_error},
 };

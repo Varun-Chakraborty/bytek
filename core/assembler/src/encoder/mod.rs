@@ -1,7 +1,7 @@
 pub mod delimiter;
 
 use self::delimiter::DelimiterTable;
-use super::parser::instruction::{Instruction, RawBinary, SemanticNode};
+use crate::parser::instruction::{Instruction, RawBinary, SemanticNode};
 use isa::MODE_BIT_COUNT;
 use std::mem;
 use thiserror::Error;
@@ -157,8 +157,10 @@ impl Encoder {
 mod tests {
     use isa::AddressingMode;
 
-    use super::super::parser::instruction::{Instruction, InstructionField};
-    use super::*;
+    use crate::{
+        encoder::Encoder,
+        parser::instruction::{Instruction, InstructionField, SemanticNode},
+    };
 
     #[test]
     fn test_encoder() {

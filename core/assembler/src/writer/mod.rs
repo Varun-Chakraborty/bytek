@@ -3,7 +3,7 @@ use std::{
     io::{self, Write},
 };
 
-use super::encoder::delimiter::DelimiterTable;
+use crate::encoder::delimiter::DelimiterTable;
 
 #[derive(Debug, thiserror::Error)]
 pub enum WriterError {

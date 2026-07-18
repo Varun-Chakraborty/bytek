@@ -1,8 +1,12 @@
 use isa::DATA_BITS;
 
-use super::super::super::render_error::{Diagnostic, render_error};
-use super::super::instruction::{OperandType, RawBinary, Statement};
-use super::{SemanticError, SemanticParser};
+use crate::{
+    parser::{
+        instruction::{OperandType, RawBinary, Statement},
+        semantic_parser::{SemanticError, SemanticParser},
+    },
+    render_error::{Diagnostic, render_error},
+};
 
 impl SemanticParser {
     pub fn analyze_directive(

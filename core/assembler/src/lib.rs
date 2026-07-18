@@ -5,7 +5,7 @@ mod preprocessor;
 mod render_error;
 pub mod writer;
 
-use self::{
+use crate::{
     encoder::{Encoder, EncoderError, delimiter::DelimiterTable},
     lexer::{Lexer, LexerError},
     parser::{Parser, ParserError},
@@ -55,7 +55,7 @@ impl MyAssembler {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::MyAssembler;
 
     #[test]
     fn test_assemble() {

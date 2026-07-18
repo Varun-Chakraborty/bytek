@@ -1,10 +1,10 @@
 use std::mem;
 
-use super::super::{
+use crate::{
     lexer::token::{TokenStream, TokenType},
+    parser::instruction::{OperandType, Statement},
     render_error::{Diagnostic, render_error},
 };
-use super::instruction::{OperandType, Statement};
 
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum SyntacticError {
@@ -305,11 +305,13 @@ impl SyntacticParser {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{
-        super::lexer::token::{SourceLoc, Token, TokenStream, TokenType},
-        instruction::StatementField,
+    use crate::{
+        lexer::token::{SourceLoc, Token, TokenStream, TokenType},
+        parser::{
+            syntactic_parser::SyntacticParser,
+            instruction::{OperandType, StatementField},
+        },
     };
-    use super::*;
 
     #[test]
     fn test_basic_parsing() {

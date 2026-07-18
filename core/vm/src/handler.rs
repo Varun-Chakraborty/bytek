@@ -1,6 +1,6 @@
 use isa::AddressingMode;
 
-use super::{MyVM, VMError, device::Device, instruction::Instruction};
+use crate::{MyVM, VMError, device::Device, instruction::Instruction};
 
 impl<D: Device> MyVM<D> {
     pub fn halt(&mut self) -> Result<(), VMError> {

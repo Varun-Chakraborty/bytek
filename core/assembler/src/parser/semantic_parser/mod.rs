@@ -3,12 +3,12 @@ mod analyze_statement;
 mod parse;
 mod parse_operand;
 
-use super::super::lexer::token::SourceLoc;
-use super::instruction::{SemanticNode, Statement};
 use isa::{OptSpec, REG_COUNT};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
+
+use crate::{lexer::token::SourceLoc, parser::instruction::Statement};
 
 #[derive(Debug, thiserror::Error)]
 pub enum SemanticError {
@@ -122,14 +122,14 @@ impl SemanticParser {
 mod tests {
     use isa::AddressingMode;
 
-    use crate::parser::instruction::OperandType;
-
-    use super::super::super::lexer::token::SourceLoc;
-    use super::super::{
-        instruction::{InstructionField, Statement, StatementField},
-        semantic_parser::SemanticParser,
+    use crate::{
+        lexer::token::SourceLoc,
+        parser::instruction::OperandType,
+        parser::{
+            instruction::{InstructionField, SemanticNode, Statement, StatementField},
+            semantic_parser::SemanticParser,
+        },
     };
-    use super::SemanticNode;
 
     #[test]
     fn test_semantic_parser() {

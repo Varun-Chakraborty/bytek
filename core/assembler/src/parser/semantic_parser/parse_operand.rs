@@ -1,10 +1,12 @@
-use crate::parser::instruction::OperandType;
-use crate::parser::semantic_parser::AddressType;
-
-use super::super::super::render_error::{Diagnostic, render_error};
-use super::super::instruction::{InstructionField, StatementField};
-use super::{SemanticError, SemanticParser, TiiEntry};
 use isa::{AddressingMode, OperandSpec};
+
+use crate::{
+    parser::{
+        instruction::{InstructionField, OperandType, StatementField},
+        semantic_parser::{AddressType, SemanticError, SemanticParser, TiiEntry},
+    },
+    render_error::{Diagnostic, render_error},
+};
 
 impl SemanticParser {
     pub fn parse_operand(

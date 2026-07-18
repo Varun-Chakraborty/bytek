@@ -48,12 +48,12 @@ impl Parser {
 mod tests {
     use isa::AddressingMode;
 
-    use crate::parser::instruction::SemanticNode;
-
-    use super::{
-        super::lexer::token::{SourceLoc, Token, TokenStream, TokenType},
-        Parser,
-        instruction::InstructionField,
+    use crate::{
+        lexer::token::{SourceLoc, Token, TokenStream, TokenType},
+        parser::{
+            Parser,
+            instruction::{InstructionField, SemanticNode},
+        },
     };
 
     #[test]

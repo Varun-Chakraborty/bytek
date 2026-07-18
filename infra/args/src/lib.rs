@@ -79,7 +79,7 @@ impl Args {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::Args;
 
     #[test]
     fn parse_defaults_without_arguments() {

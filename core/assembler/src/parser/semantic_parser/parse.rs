@@ -1,6 +1,10 @@
-use super::super::super::render_error::{Diagnostic, render_error};
-use super::super::instruction::Statement;
-use super::{AddressType, SemanticError, SemanticNode, SemanticParser};
+use crate::{
+    parser::{
+        instruction::{SemanticNode, Statement},
+        semantic_parser::{AddressType, SemanticError, SemanticParser},
+    },
+    render_error::{Diagnostic, render_error},
+};
 
 impl SemanticParser {
     pub fn parse(

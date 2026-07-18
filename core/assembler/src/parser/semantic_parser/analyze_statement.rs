@@ -1,8 +1,12 @@
 use isa::MODE_BIT_COUNT;
 
-use super::super::super::render_error::{Diagnostic, render_error};
-use super::super::instruction::{Instruction, InstructionField, Statement};
-use super::{SemanticError, SemanticParser};
+use crate::{
+    parser::{
+        instruction::{Instruction, InstructionField, Statement},
+        semantic_parser::{SemanticError, SemanticParser},
+    },
+    render_error::{Diagnostic, render_error},
+};
 
 impl SemanticParser {
     pub fn analyze_statement(
