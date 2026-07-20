@@ -74,6 +74,51 @@ Execution follows the usual fetch-decode-execute loop:
 
 `IN` and `OUT` are byte-oriented. The default binary constructs `MyVM` with `ConsoleDevice`, which reads one byte from standard input and writes output bytes as characters to standard output.
 
+## Memory Layout
+
+The VM has a single unified 64 KB address space shared by code and data. There is no separation between program memory and data memory — both live in the same `Memory<u8>` array.
+
+However, the ISA distinguishes two addressing domains:
+
+| Domain | Addressing Mode | Unit | Range | Used by |
+| --- | --- | --- | --- | --- |
+| Code | `DirectCode` | bits | `0` to `524287` | `JMP`, `JZ`, `JNZ`, `CALL` targets |
+| Data | `DirectData`, `Indirect` | bytes | `0` to `65535` | `MOVER`, `MOVEM` data operands |
+
+Code addresses are **bit offsets** because instructions are packed at the bit level with no alignment requirement. Data addresses are **byte offsets**. The assembler divides the location counter by 8 when resolving data labels.
+
+## Stack
+
+The stack grows **downward** from address `65535` toward `0`. The stack pointer (`sp`) starts at `MEM_BYTES - 1` (i.e., `65535`).
+
+- `PUSH` writes the value at the current `sp`, then decrements `sp`.
+- `POP` increments `sp`, then reads from the new `sp`.
+
+`CALL` pushes a 3-byte return address (little-endian: low byte first, then mid, then high) and jumps to the target. `RET` pops 3 bytes in reverse order to reconstruct the 24-bit return address and resumes execution. Each `CALL`/`RET` pair consumes 6 bytes of stack space (3 bytes pushed, 3 bytes popped).
+
+## Calling Convention
+
+The standard library establishes a register-based calling convention:
+
+- **Arguments**: Passed in `R1`-`R4` (no stack-based arguments). Maximum 4 arguments.
+- **Return value**: Always in `R0` (or `R0:R1` for 16-bit results like `MULT`).
+- **Callee-saved registers**: `R2`, `R3`, `R4`. Any subroutine that modifies these must push them on entry and pop before `RET`.
+- **Caller-saved registers**: `R0`, `R1`. The caller should not assume these survive across a `CALL`.
+
+Every subroutine follows a standard prologue/epilogue pattern:
+
+```asm
+SUBROUTINE:
+    PUSH R2        ; save registers that will be modified
+    PUSH R3
+    ...            ; body
+    POP R3         ; restore in reverse push order
+    POP R2
+    RET
+```
+
+There are no stack frames or local variables on the stack — only saved registers.
+
 ## Devices
 
 VM I/O is routed through the `Device` trait:

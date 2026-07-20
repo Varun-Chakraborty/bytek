@@ -24,28 +24,7 @@ impl SemanticParser {
                         // AddressingMode::DirectCode
                         // AddressingMode::DirectData
 
-                        if spec.allowed_modes.contains(&AddressingMode::Register) {
-                            if !self.regexes.register.is_match(&token.value) {
-                                return Err(SemanticError::ShapeDoesNotMatch {
-                                    message: render_error(Diagnostic {
-                                        headline: format!(
-                                            "Token '{}' does not look like a register",
-                                            token.value
-                                        ),
-                                        line: token.loc.line,
-                                        column: token.loc.column,
-                                        source_line: &source_lines
-                                            [token.loc.line as usize as usize - 1],
-                                        help: Some(
-                                            format!(
-                                                "Register operand must match the regex: {}",
-                                                self.regexes.register.as_str()
-                                            )
-                                            .as_str(),
-                                        ),
-                                    }),
-                                });
-                            }
+                        if spec.allowed_modes.contains(&AddressingMode::Register) && self.regexes.register.is_match(&token.value) {
                             let value = token.value[1..]
                                 .parse()
                                 .map_err(|_| SemanticError::ParseInt(token.to_string()))?;

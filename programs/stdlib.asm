@@ -1,5 +1,60 @@
+MULT:
+    PUSH R2
+    PUSH R3
+    PUSH R4
+    MOVER R0, #0
+    MOVER R1, #0
+    MOVER R4, R3
+    MOVER R3, R2
+    MOVER R2, #0
+LOOP6:
+    CMP R4, #0
+    JZ EXIT_MULT
+    PUSH R4
+    AND R4, #1
+    JZ ZERO
+ADD:
+    ADD R1, R3
+    ADC R0, R2
+ZERO:
+    MOVER R4, #0
+    SHL R3
+    ADC R4, #0
+    SHL R2
+    ADD R2, R4
+    POP R4
+    SHR R4
+    JMP LOOP6
+EXIT_MULT:
+    POP R4
+    POP R3
+    POP R2
+    RET
+
+DIV:
+    PUSH R2
+    PUSH R3
+    PUSH R4
+    MOVER R0, #0
+    MOVER R1, R2
+LOOP7:
+    MOVER R4, #0
+    CMP R1, R3
+    ADC R4, #0
+    CMP R4, #1
+    JZ EXIT_DIV
+    SUB R1, R3
+    ADD R0, #1
+    JMP LOOP7
+EXIT_DIV:
+    POP R4
+    POP R3
+    POP R2
+    RET
+
 PRINT_STRING:
     PUSH R1
+    PUSH R3
 LOOP1:
     MOVER R3, [R1]
     CMP R3, #0
@@ -8,12 +63,15 @@ LOOP1:
     ADD R1, #1
     JMP LOOP1
 EXIT_PRINT_STRING:
+    POP R3
     POP R1
     RET
 
 COMPARE_STRINGS:
     PUSH R1
     PUSH R2
+    PUSH R3
+    PUSH R4
 LOOP2:
     MOVER R3, [R1]
     MOVER R4, [R2]
@@ -30,12 +88,15 @@ NOT_EQUAL:
 EQUAL:
     MOVER R0, #0
 RETURN:
+    POP R4
+    POP R3
     POP R2
     POP R1
     RET
 
 STRLEN:
     PUSH R1
+    PUSH R3
     MOVER R0, #0
 LOOP3:
     MOVER R3, [R1]
@@ -45,36 +106,50 @@ LOOP3:
     ADD R0, #1
     JMP LOOP3
 EXIT_STRLEN:
+    POP R3
     POP R1
     RET
 
 PRINT_INT:
     PUSH R1
+    PUSH R2
+    PUSH R3
+    PUSH R4
     CMP R1, #0
     JNZ PRINT_INT_NONZERO
     MOVER R3, #48
     OUT R3
+    POP R4
+    POP R3
+    POP R2
     POP R1
     RET
 PRINT_INT_NONZERO:
     MOVER R4, #0
+    MOVER R2, R1
+    MOVER R3, #10
 LOOP4:
-    MOD R3, R1, #10
-    ADD R3, #48
-    PUSH R3
+    CALL DIV
+    ADD R1, #48
+    PUSH R1
     ADD R4, #1
-    DIV R1, #10
-    CMP R1, #0
+    MOVER R2, R0
+    CMP R2, #0
     JNZ LOOP4
 LOOP5:
     POP R3
     OUT R3
     SUB R4, #1
     JNZ LOOP5
+    POP R4
+    POP R3
+    POP R2
     POP R1
     RET
 
 PRINTLN:
+    PUSH R3
     MOVER R3, #10
     OUT R3
+    POP R3
     RET

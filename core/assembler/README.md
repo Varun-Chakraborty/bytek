@@ -67,7 +67,7 @@ Example:
 MOVE: MOVER R0, 0
 ```
 
-Arithmetic instructions such as `ADD`, `SUB`, `MULT`, `DIV`, `MOD`, `ADC`, and `SBC` are encoded as three-operand instructions. As a convenience, the semantic parser accepts two-operand forms and rewrites them so the first operand is also the destination:
+Arithmetic and bitwise instructions such as `ADD`, `SUB`, `ADC`, `SBC`, `AND`, `OR`, and `XOR` are encoded as three-operand instructions. As a convenience, the semantic parser accepts two-operand forms and rewrites them so the first operand is also the destination:
 
 ```asm
 ADD R0, #1
@@ -124,17 +124,99 @@ The lexer decodes `\n`, `\t`, and `\0` inside strings. Other escape sequences ar
 
 ## Standard Library
 
-[`programs/stdlib.asm`](../../programs/stdlib.asm) is the Bytek assembly standard library. It currently provides reusable I/O and string routines for assembly programs:
+[`programs/stdlib.asm`](../../programs/stdlib.asm) is the Bytek assembly standard library. It currently provides reusable math, I/O, and string routines for assembly programs:
 
 | Routine | Inputs | Outputs | Preserved | Clobbers |
 | --- | --- | --- | --- | --- |
-| `PRINT_STRING` | `R1`: address of a null-terminated string | none | `R1` | `R3`, flags |
-| `COMPARE_STRINGS` | `R1`: first string address, `R2`: second string address | `R0`: `1` if equal, `0` otherwise | `R1`, `R2` | `R3`, `R4`, flags |
-| `STRLEN` | `R1`: address of a null-terminated string | `R0`: string length in bytes, excluding `\0` | `R1` | `R3`, flags |
-| `PRINT_INT` | `R1`: unsigned byte value to print in decimal | none | `R1` | `R3`, `R4`, flags |
-| `PRINTLN` | none | none | none | `R3` |
+| `MULT` | `R2`: first operand, `R3`: second operand | `R0`: high byte, `R1`: low byte of 16-bit product | `R2`, `R3`, `R4` | flags |
+| `DIV` | `R2`: numerator, `R3`: denominator | `R0`: quotient, `R1`: remainder | `R2`, `R3`, `R4` | flags |
+| `PRINT_STRING` | `R1`: address of a null-terminated string | none | `R1`, `R3` | flags |
+| `COMPARE_STRINGS` | `R1`: first string address, `R2`: second string address | `R0`: `0` if equal, `1` otherwise | `R1`, `R2`, `R3`, `R4` | flags |
+| `STRLEN` | `R1`: address of a null-terminated string | `R0`: string length in bytes, excluding `\0` | `R1`, `R3` | flags |
+| `PRINT_INT` | `R1`: unsigned byte value to print in decimal | none | `R1`, `R2`, `R3`, `R4` | flags |
+| `PRINTLN` | none | none | `R3` | flags |
 
-`PRINT_INT` prints the byte value in `R1`, so values are limited to `0..255`.
+`MULT` performs 8×8→16-bit multiplication via shift-and-add. `DIV` performs repeated-subtraction division and also produces the remainder in `R1`. `PRINT_INT` prints the byte value in `R1`, so values are limited to `0..255`. `COMPARE_STRINGS` returns `0` for equal and `1` for not equal.
+
+## Conventions
+
+### Comments
+
+Comments begin with `;` and extend to the end of the line. They are stripped during lexing and produce no output:
+
+```asm
+; This is a comment
+ADD R0, R1  ; Inline comment
+```
+
+### Labels
+
+Labels are identifiers followed by a colon. They must start with a letter and contain only letters, digits, and underscores (`^[A-Za-z][A-Za-z0-9_]*$`). Labels can appear on their own line or before an instruction on the same line:
+
+```asm
+LOOP:
+    ADD R0, #1
+    JNZ LOOP
+
+NEXT: HALT
+```
+
+Labels resolve to **bit offsets** for code addressing and **byte offsets** for data addressing. Forward references are supported.
+
+### Addressing Mode Syntax
+
+| Mode | Syntax | Example | Notes |
+| --- | --- | --- | --- |
+| Register | bare identifier | `R0` | Must match `R[0-4]`. |
+| Immediate | `#` prefix | `#42`, `#PROMPT` | `#` followed by a number or label. Label resolves to a byte address. |
+| DirectData | bare identifier | `DATA`, `0` | Used by `MOVER`/`MOVEM`. Resolves to a byte address. |
+| DirectCode | bare identifier | `START` | Used by `JMP`/`JZ`/`JNZ`/`CALL`. Resolves to a bit address. |
+| Indirect | `[...]` | `[0]`, `[DATA]` | Brackets around a data address. |
+| IndirectRegister | `[Rn]` | `[R0]` | Brackets around a register. |
+
+### Strings
+
+Strings are delimited by double quotes. Supported escape sequences: `\n` (newline), `\t` (tab), `\0` (null). Other escape sequences are rejected. Strings are used with the `.ascii` directive, not as instruction operands.
+
+All stdlib string routines (`PRINT_STRING`, `COMPARE_STRINGS`, `STRLEN`) expect **null-terminated** strings — always end strings with `\0`:
+
+```asm
+MSG:
+.ascii "Hello World\n\0"
+```
+
+### Program Entry Point
+
+Data directives (`.ascii`, `.byte`, `.align`) and `.include` files are placed inline in the code stream. Since execution starts at the first encoded instruction, programs that place data or includes before their entry point must jump over them:
+
+```asm
+JMP START
+
+.align
+
+PROMPT:
+.ascii "Enter a number: \0"
+.include "stdlib.asm"
+
+START:
+    ; actual program code
+```
+
+### Subroutine Structure
+
+Every subroutine saves registers it will modify on entry and restores them before returning:
+
+```asm
+FUNC:
+    PUSH R2
+    PUSH R3
+    ...            ; body
+    POP R3
+    POP R2
+    RET
+```
+
+Registers are restored in the reverse order they were pushed. Only callee-saved registers (`R2`, `R3`, `R4`) need this treatment; `R0` and `R1` are caller-saved and do not need preservation.
 
 ## Output
 

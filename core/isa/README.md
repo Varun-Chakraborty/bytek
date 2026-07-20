@@ -61,6 +61,35 @@ Opcodes are indexes in the operation table.
 | 20 | `OR` | register, register, immediate or register |
 | 21 | `XOR` | register, register, immediate or register |
 
+## Register Usage
+
+The five general-purpose registers (`R0`-`R4`) have de facto conventions established by the standard library:
+
+| Register | Role |
+| --- | --- |
+| `R0` | Return value register. Callee writes results here. For 16-bit results, `R0` holds the high byte and `R1` the low byte. |
+| `R1` | Primary argument / input register. First argument to stdlib routines. |
+| `R2` | Second argument. Callee-saved. |
+| `R3` | Third argument / scratch. Callee-saved. |
+| `R4` | Scratch / loop counter. Callee-saved. |
+
+These are conventions only, not enforced by hardware. Any register can be used for any purpose.
+
+## Flag Behavior
+
+Four condition flags (`zero`, `sign`, `overflow`, `carry`) are updated by arithmetic, comparison, bitwise, and shift instructions. Movement, control flow, and stack instructions do not modify flags.
+
+| Instruction | zero | sign | carry | overflow |
+| --- | ---: | ---: | ---: | ---: |
+| `ADD`, `ADC` | result == 0 | MSB set | unsigned sum > 255 | signed overflow |
+| `SUB`, `SBC` | result == 0 | MSB set | num1 < num2 (borrow) | signed overflow |
+| `CMP` | result == 0 | MSB set | num1 < num2 | signed overflow |
+| `SHL` | result == 0 | MSB set | old MSB | cleared |
+| `SHR` | result == 0 | MSB set | old LSB | cleared |
+| `AND`, `OR`, `XOR` | result == 0 | MSB set | cleared | cleared |
+
+`CMP` performs the same subtraction and flag computation as `SUB` but does not write the result back. `ADC` and `SBC` read the current carry flag, enabling multi-precision arithmetic.
+
 ## API Notes
 
 - Use `OptSpec::clone()` to create the current operation table.
