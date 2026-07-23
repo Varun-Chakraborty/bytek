@@ -20,7 +20,7 @@ impl Preprocessor {
             .map(|(i, mut line)| {
                 line = line.trim();
                 if line.starts_with(".include") {
-                    let statement = line.split(" ").collect::<Vec<&str>>();
+                    let statement = line.split_whitespace().collect::<Vec<&str>>();
                     if statement.len() != 2 {
                         return Err(PreprocessorError::IncludeError {
                             message: render_error(Diagnostic {
@@ -64,7 +64,7 @@ impl Preprocessor {
 
                     Ok(
                         match std::fs::read_to_string(&format!("programs/{file_path}")) {
-                            Ok(file) => file,
+                            Ok(file) => self.preprocess(&file)?,
                             Err(e) => {
                                 return Err(PreprocessorError::IncludeError {
                                     message: render_error(Diagnostic {

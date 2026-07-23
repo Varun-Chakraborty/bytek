@@ -1,0 +1,42 @@
+COMPARE_STRINGS:
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    PUSH R4
+LOOP2:
+    MOVER R3, [R1]
+    MOVER R4, [R2]
+    CMP R3, R4
+    JNZ NOT_EQUAL
+    CMP R3, #0
+    JZ EQUAL
+    ADD R1, #1
+    ADD R2, #1
+    JMP LOOP2
+NOT_EQUAL:
+    MOVER R0, #1
+    JMP RETURN
+EQUAL:
+    MOVER R0, #0
+RETURN:
+    POP R4
+    POP R3
+    POP R2
+    POP R1
+    RET
+
+STRLEN:
+    PUSH R1
+    PUSH R3
+    MOVER R0, #0
+LOOP3:
+    MOVER R3, [R1]
+    CMP R3, #0
+    JZ EXIT_STRLEN
+    ADD R1, #1
+    ADD R0, #1
+    JMP LOOP3
+EXIT_STRLEN:
+    POP R3
+    POP R1
+    RET

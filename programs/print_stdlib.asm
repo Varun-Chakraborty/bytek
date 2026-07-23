@@ -1,0 +1,58 @@
+PRINT_STRING:
+    PUSH R1
+    PUSH R3
+LOOP1:
+    MOVER R3, [R1]
+    CMP R3, #0
+    JZ EXIT_PRINT_STRING
+    OUT R3
+    ADD R1, #1
+    JMP LOOP1
+EXIT_PRINT_STRING:
+    POP R3
+    POP R1
+    RET
+
+PRINT_INT:
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    PUSH R4
+    CMP R1, #0
+    JNZ PRINT_INT_NONZERO
+    MOVER R3, #48
+    OUT R3
+    POP R4
+    POP R3
+    POP R2
+    POP R1
+    RET
+PRINT_INT_NONZERO:
+    MOVER R4, #0
+    MOVER R2, R1
+    MOVER R3, #10
+LOOP4:
+    CALL DIV
+    ADD R1, #48
+    PUSH R1
+    ADD R4, #1
+    MOVER R2, R0
+    CMP R2, #0
+    JNZ LOOP4
+LOOP5:
+    POP R3
+    OUT R3
+    SUB R4, #1
+    JNZ LOOP5
+    POP R4
+    POP R3
+    POP R2
+    POP R1
+    RET
+
+PRINTLN:
+    PUSH R3
+    MOVER R3, #10
+    OUT R3
+    POP R3
+    RET

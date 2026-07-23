@@ -83,7 +83,7 @@ Preprocessor statements currently supported:
 
 | Statement | Operand | Behavior |
 | --- | --- | --- |
-| `.include` | one double-quoted `.asm` file path | Replaces the statement with the contents of `programs/<path>`. |
+| `.include` | one double-quoted `.asm` file path | Replaces the statement with the contents of `programs/<path>`. Included files are preprocessed recursively, so an included file can itself include other files. |
 
 For example, [`programs/kernel.asm`](../../programs/kernel.asm) can pull in the Bytek standard library:
 
@@ -124,19 +124,43 @@ The lexer decodes `\n`, `\t`, and `\0` inside strings. Other escape sequences ar
 
 ## Standard Library
 
-[`programs/stdlib.asm`](../../programs/stdlib.asm) is the Bytek assembly standard library. It currently provides reusable math, I/O, and string routines for assembly programs:
+[`programs/stdlib.asm`](../../programs/stdlib.asm) is the Bytek assembly standard library. It is split into three modules, all included by `stdlib.asm`:
+
+```asm
+.include "math_stdlib.asm"
+.include "string_stdlib.asm"
+.include "print_stdlib.asm"
+```
+
+Individual modules can also be included directly when only a subset of routines is needed.
+
+### Math (`math_stdlib.asm`)
 
 | Routine | Inputs | Outputs | Preserved | Clobbers |
 | --- | --- | --- | --- | --- |
 | `MULT` | `R2`: first operand, `R3`: second operand | `R0`: high byte, `R1`: low byte of 16-bit product | `R2`, `R3`, `R4` | flags |
 | `DIV` | `R2`: numerator, `R3`: denominator | `R0`: quotient, `R1`: remainder | `R2`, `R3`, `R4` | flags |
-| `PRINT_STRING` | `R1`: address of a null-terminated string | none | `R1`, `R3` | flags |
+
+`MULT` performs 8×8→16-bit multiplication via shift-and-add. `DIV` performs repeated-subtraction division and also produces the remainder in `R1`.
+
+### Strings (`string_stdlib.asm`)
+
+| Routine | Inputs | Outputs | Preserved | Clobbers |
+| --- | --- | --- | --- | --- |
 | `COMPARE_STRINGS` | `R1`: first string address, `R2`: second string address | `R0`: `0` if equal, `1` otherwise | `R1`, `R2`, `R3`, `R4` | flags |
 | `STRLEN` | `R1`: address of a null-terminated string | `R0`: string length in bytes, excluding `\0` | `R1`, `R3` | flags |
+
+All string routines expect null-terminated strings.
+
+### Print (`print_stdlib.asm`)
+
+| Routine | Inputs | Outputs | Preserved | Clobbers |
+| --- | --- | --- | --- | --- |
+| `PRINT_STRING` | `R1`: address of a null-terminated string | none | `R1`, `R3` | flags |
 | `PRINT_INT` | `R1`: unsigned byte value to print in decimal | none | `R1`, `R2`, `R3`, `R4` | flags |
 | `PRINTLN` | none | none | `R3` | flags |
 
-`MULT` performs 8×8→16-bit multiplication via shift-and-add. `DIV` performs repeated-subtraction division and also produces the remainder in `R1`. `PRINT_INT` prints the byte value in `R1`, so values are limited to `0..255`. `COMPARE_STRINGS` returns `0` for equal and `1` for not equal.
+`PRINT_INT` prints the byte value in `R1`, so values are limited to `0..255`.
 
 ## Conventions
 
