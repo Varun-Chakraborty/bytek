@@ -259,9 +259,7 @@ impl<D: Device> MyVM<D> {
         let num2 = match operand2.mode {
             AddressingMode::Immediate => operand2.value as u8,
             AddressingMode::Register => *self.registers.get_general(operand2.value)?,
-            _ => {
-                panic!("Invalid addressing mode");
-            }
+            _ => panic!("Invalid addressing mode")
         };
         let diff_16 = num1 as u16 + 256 - num2 as u16;
         let diff_8 = diff_16 as i8;
