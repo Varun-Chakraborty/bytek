@@ -90,6 +90,28 @@ Four condition flags (`zero`, `sign`, `overflow`, `carry`) are updated by arithm
 
 `CMP` performs the same subtraction and flag computation as `SUB` but does not write the result back. `ADC` and `SBC` read the current carry flag, enabling multi-precision arithmetic.
 
+### Flag Semantics
+
+**Zero (Z)**: Set when the 8-bit result equals zero.
+
+**Sign (S)**: Set when bit 7 (MSB) of the result is 1, indicating a negative value in two's complement.
+
+**Carry (C)**:
+- `ADD`/`ADC`: Set if the unsigned 16-bit sum exceeds 255 (unsigned overflow out of 8 bits).
+- `SUB`/`SBC`/`CMP`: Set if `num1` is less than `num2` (unsigned borrow).
+- `SHL`: Set to the value of bit 7 *before* the shift (the bit shifted out of the MSB).
+- `SHR`: Set to the value of bit 0 *before* the shift (the bit shifted out of the LSB).
+- `AND`/`OR`/`XOR`: Always cleared to 0.
+
+**Overflow (V)**: Detects signed overflow in two's complement arithmetic.
+- `ADD`/`ADC`: Set when both operands have the same sign but the result has a different sign. Computed as `((num1 ^ result) & (num2 ^ result)) & 0x80 != 0`.
+- `SUB`/`SBC`/`CMP`: Set when the operands have different signs and the result's sign differs from the first operand. Computed as `((num1 ^ num2) & (num1 ^ result)) & 0x80 != 0`.
+- `SHL`/`SHR`/`AND`/`OR`/`XOR`: Always cleared to 0.
+
+### Instructions That Do Not Modify Flags
+
+`HALT`, `IN`, `OUT`, `MOVER`, `MOVEM`, `PUSH`, `POP`, `JMP`, `JZ`, `JNZ`, `CALL`, `RET` leave all flags unchanged. Notably, `JZ` and `JNZ` *read* the zero flag but do not modify it.
+
 ## API Notes
 
 - Use `OptSpec::clone()` to create the current operation table.

@@ -74,6 +74,53 @@ Execution follows the usual fetch-decode-execute loop:
 
 `IN` and `OUT` are byte-oriented. The default binary constructs `MyVM` with `ConsoleDevice`, which reads one byte from standard input and writes output bytes as characters to standard output.
 
+## Flag Semantics
+
+The four condition flags are set by `ADD`, `ADC`, `SUB`, `SBC`, `CMP`, `SHL`, `SHR`, `AND`, `OR`, and `XOR`. All other instructions leave flags unchanged.
+
+### Zero (Z)
+
+Set when the 8-bit result equals zero.
+
+### Sign (S)
+
+Set when bit 7 (MSB) of the result is 1, indicating a negative value in two's complement.
+
+### Carry (C)
+
+| Instruction group | Meaning |
+| --- | --- |
+| `ADD`, `ADC` | Set if the unsigned 16-bit sum exceeds 255 (carry out of bit 7). `ADC` adds the current carry flag to the sum. |
+| `SUB`, `SBC`, `CMP` | Set if `num1 < num2` (unsigned borrow). `SBC` and `CMP` subtract the carry flag from the subtrahend. |
+| `SHL` | Set to the value of bit 7 *before* the shift (the bit shifted out of the MSB). |
+| `SHR` | Set to the value of bit 0 *before* the shift (the bit shifted out of the LSB). |
+| `AND`, `OR`, `XOR` | Always cleared to 0. |
+
+### Overflow (V)
+
+Detects signed overflow in two's complement arithmetic. Always cleared for bitwise and shift operations.
+
+| Instruction group | Meaning | Formula |
+| --- | --- | --- |
+| `ADD`, `ADC` | Both operands had the same sign but the result differs. | `((num1 ^ result) & (num2 ^ result)) & 0x80 != 0` |
+| `SUB`, `SBC`, `CMP` | Operands had different signs and the result sign differs from `num1`. | `((num1 ^ num2) & (num1 ^ result)) & 0x80 != 0` |
+
+### Per-Instruction Summary
+
+| Instruction | Z | S | C | V | Notes |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `ADD Rdest, Rsrc1, Rsrc2/imm` | Y | Y | Y | Y | 8-bit add with carry out and signed overflow detection. |
+| `ADC Rdest, Rsrc1, Rsrc2/imm` | Y | Y | Y | Y | Add with carry-in from previous operation. |
+| `SUB Rdest, Rsrc1, Rsrc2/imm` | Y | Y | Y | Y | 8-bit subtract with borrow detection. |
+| `SBC Rdest, Rsrc1, Rsrc2/imm` | Y | Y | Y | Y | Subtract with borrow-in from previous operation. |
+| `CMP Rsrc, Rsrc2/imm` | Y | Y | Y | Y | Same as `SUB` but discards the result. |
+| `SHL Rsrc` | Y | Y | Y | — | Left shift by 1. Carry gets old MSB. Overflow cleared. |
+| `SHR Rsrc` | Y | Y | Y | — | Right shift by 1. Carry gets old LSB. Overflow cleared. |
+| `AND Rdest, Rsrc1, Rsrc2/imm` | Y | Y | — | — | Bitwise AND. Carry and overflow cleared. |
+| `OR Rdest, Rsrc1, Rsrc2/imm` | Y | Y | — | — | Bitwise OR. Carry and overflow cleared. |
+| `XOR Rdest, Rsrc1, Rsrc2/imm` | Y | Y | — | — | Bitwise XOR. Carry and overflow cleared. |
+| All other instructions | — | — | — | — | Flags are not modified. |
+
 ## Memory Layout
 
 The VM has a single unified 64 KB address space shared by code and data. There is no separation between program memory and data memory — both live in the same `Memory<u8>` array.
